@@ -22,12 +22,12 @@
 
 module Hazard(
         input [4:0] rsD, rtD,
-        input [4:0] RF_address3E, RF_address3M, RF_address3DM, RF_address3W,
-        input reg_write_enE, reg_write_enM, reg_write_enDM, reg_write_enW,
+        input [4:0] RF_address3E, RF_address3M, RF_address3DM,
+        input reg_write_enE, reg_write_enM, reg_write_enDM,
         input reg_data_muxE, reg_data_muxM,
         input pc_srcD, jumpD,
         output stall, flush, flush_control,
-        output [2:0] forwardAD, forwardBD
+        output [1:0] forwardAD, forwardBD
     );
 
     // F IM D E M DM W
@@ -38,17 +38,16 @@ module Hazard(
 
     // 判断条件，以E阶段前递为例 ： RF_address3E !=0 && RF_address3E == rsD/rtD && w_enE && !lw
     // 定义 forwardAD 000-normal  001-E  010-M  011-DM  100-W 
+    // ** v2.2 删除W阶段前递，使用同周期读写判断
 
-    assign forwardAD = ((RF_address3E != 5'b0) && (RF_address3E == rsD) && reg_write_enE && !reg_data_muxE) ? 3'b001 :
-                       ((RF_address3M != 5'b0) && (RF_address3M == rsD) && reg_write_enM && !reg_data_muxM) ? 3'b010 :
-                       ((RF_address3DM != 5'b0) && (RF_address3DM == rsD) && reg_write_enDM) ? 3'b011 :
-                       ((RF_address3W != 5'b0) && (RF_address3W == rsD) && reg_write_enW) ? 3'b100 :
+    assign forwardAD = ((RF_address3E != 5'b0) && (RF_address3E == rsD) && reg_write_enE && !reg_data_muxE) ? 3'b01 :
+                       ((RF_address3M != 5'b0) && (RF_address3M == rsD) && reg_write_enM && !reg_data_muxM) ? 3'b10 :
+                       ((RF_address3DM != 5'b0) && (RF_address3DM == rsD) && reg_write_enDM) ? 3'b11 :
                        3'b000;
     
-    assign forwardBD = ((RF_address3E != 5'b0) &&(RF_address3E == rtD) && reg_write_enE && !reg_data_muxE) ? 3'b001 :
-                       ((RF_address3M != 5'b0) &&(RF_address3M == rtD) && reg_write_enM && !reg_data_muxM) ? 3'b010 :
-                       ((RF_address3DM != 5'b0) && (RF_address3DM == rtD) && reg_write_enDM) ? 3'b011 :
-                       ((RF_address3W != 5'b0) && (RF_address3W == rtD) && reg_write_enW) ? 3'b100 :
+    assign forwardBD = ((RF_address3E != 5'b0) &&(RF_address3E == rtD) && reg_write_enE && !reg_data_muxE) ? 3'b01 :
+                       ((RF_address3M != 5'b0) &&(RF_address3M == rtD) && reg_write_enM && !reg_data_muxM) ? 3'b10 :
+                       ((RF_address3DM != 5'b0) && (RF_address3DM == rtD) && reg_write_enDM) ? 3'b11 :
                        3'b000;
 
     // lw 数据冒险

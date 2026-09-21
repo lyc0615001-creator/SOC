@@ -30,7 +30,7 @@ module Datapath (
     wire [4:0] RF_address3E;
     wire [31:0] sign_extE;
     wire [31:0] DM_data_iE, alu_data_i2E, alu_resultE;
-    wire [31:0] RF_data_o1_mux5E, RF_data_o2_mux5E;
+    wire [31:0] RF_data_o1_mux4E, RF_data_o2_mux4E;
 
     // M阶段变量
     wire [4:0] RF_address3M;
@@ -43,8 +43,8 @@ module Datapath (
     wire [31:0] RF_data_iW;
 
     // HAZARD 变量
-    wire [2:0] forwardAD, forwardBD;
-    wire [31:0] RF_data_o1_mux5D, RF_data_o2_mux5D;
+    wire [1:0] forwardAD, forwardBD;
+    wire [31:0] RF_data_o1_mux4D, RF_data_o2_mux4D;
     wire flush_control,  flush_controlD;
 
     assign rsD = instrD[25:21];
@@ -52,7 +52,7 @@ module Datapath (
     assign rdD = instrD[15:11];
     assign lw_offsetD = instrD[15:0];
 
-    assign DM_data_iE = RF_data_o2_mux5E;
+    assign DM_data_iE = RF_data_o2_mux4E;
 
     // 指令执行模块
 
@@ -90,12 +90,12 @@ module Datapath (
 
 
     // D -> E 流水线触发器
-    // 延迟变量 RF_address3D RF_data_o1_mux5D RF_data_o2_mux5D sign_extD
+    // 延迟变量 RF_address3D RF_data_o1_mux4D RF_data_o2_mux4D sign_extD
     // flopenrc #(5) u_flopenrc_rtE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(flush), .din(rtD), .dout(rtE));
     // flopenrc #(5) u_flopenrc_rdE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(flush), .din(rdD), .dout(rdE));
     flopenrc #(5) u_flopenrc_RF_address3E(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(flush), .din(RF_address3D), .dout(RF_address3E));
-    flopenrc #(32) u_flopenrc_RF_data_o1_mux5E(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(flush), .din(RF_data_o1_mux5D), .dout(RF_data_o1_mux5E));
-    flopenrc #(32) u_flopenrc_RF_data_o2_mux5E(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(flush), .din(RF_data_o2_mux5D), .dout(RF_data_o2_mux5E));
+    flopenrc #(32) u_flopenrc_RF_data_o1_mux4E(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(flush), .din(RF_data_o1_mux4D), .dout(RF_data_o1_mux4E));
+    flopenrc #(32) u_flopenrc_RF_data_o2_mux4E(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(flush), .din(RF_data_o2_mux4D), .dout(RF_data_o2_mux4E));
     flopenrc #(32) u_flopenrc_sign_extE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(flush), .din(sign_extD), .dout(sign_extE));
 
     // E -> M 流水线触发器  
@@ -129,7 +129,7 @@ module Datapath (
     // ====R====
     alu u_alu(
         .alu_control(alu_controlE),
-        .alu_data_i1(RF_data_o1_mux5E),
+        .alu_data_i1(RF_data_o1_mux4E),
         .alu_data_i2(alu_data_i2E),
         .alu_data_o(alu_resultE)
         );
@@ -140,7 +140,7 @@ module Datapath (
     // alu_src_muxE
     mux2 #(32) u_mux2_alu_data_i2 (
         .data_i1(sign_extE), 
-        .data_i2(RF_data_o2_mux5E), 
+        .data_i2(RF_data_o2_mux4E), 
         .sel(alu_src_muxE), 
         .data_o(alu_data_i2E)
         );
@@ -162,7 +162,7 @@ module Datapath (
         );
 
     // ====beq====
-    assign zeroD = (RF_data_o1_mux5D == RF_data_o2_mux5D);
+    assign zeroD = (RF_data_o1_mux4D == RF_data_o2_mux4D);
     assign pc_srcD = zeroD && branchD;
 
 
@@ -211,11 +211,9 @@ module Datapath (
         .RF_address3E(RF_address3E), 
         .RF_address3M(RF_address3M), 
         .RF_address3DM(RF_address3DM), 
-        .RF_address3W(RF_address3W),
         .reg_write_enE(reg_write_enE), 
         .reg_write_enM(reg_write_enM), 
         .reg_write_enDM(reg_write_enDM), 
-        .reg_write_enW(reg_write_enW),
         .reg_data_muxE(reg_data_muxE),
         .reg_data_muxM(reg_data_muxM),
         .pc_srcD(pc_srcD),
@@ -227,24 +225,22 @@ module Datapath (
         .forwardBD(forwardBD)
     );
 
-    mux5 #(32) u_mux5_RF_data1(
+    mux4 #(32) u_mux4_RF_data1(
         .data_i1(RF_data_o1D),
         .data_i2(alu_resultE),
         .data_i3(alu_resultM),
         .data_i4(RF_data_iDM),
-        .data_i5(RF_data_iW),
         .sel(forwardAD),
-        .data_o(RF_data_o1_mux5D)
+        .data_o(RF_data_o1_mux4D)
     );
 
-    mux5 #(32) u_mux5_RF_data2(
+    mux4 #(32) u_mux4_RF_data2(
         .data_i1(RF_data_o2D),
         .data_i2(alu_resultE),
         .data_i3(alu_resultM),
         .data_i4(RF_data_iDM),
-        .data_i5(RF_data_iW),
         .sel(forwardBD),
-        .data_o(RF_data_o2_mux5D)
+        .data_o(RF_data_o2_mux4D)
     );
     
 endmodule
