@@ -3,9 +3,9 @@
 // Company: 
 // Engineer: 
 // 
-// Create Date: 2026/09/19 19:18:28
+// Create Date: 2026/09/21 17:00:09
 // Design Name: 
-// Module Name: mux5
+// Module Name: mux4
 // Project Name: 
 // Target Devices: 
 // Tool Versions: 
@@ -35,3 +35,4 @@ module mux4 #(parameter WIDTH = 32)(
                     (sel == 3'b11) ? data_i4 :
                     data_i1;
 endmodule
+

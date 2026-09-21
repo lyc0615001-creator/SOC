@@ -7,6 +7,7 @@ module Datapath (
     input reg_write_enW, alu_src_muxE, reg_data_muxDM, reg_dst_muxD,
     input reg_data_muxE, reg_data_muxM,
     input branchD, jumpD,
+    input used_rsD, used_rtD,
     input [2:0] alu_controlE,
     output [31:0] pc_oF, alu_resultM, DM_data_iM, pc_oM, instrD,
     output stall, flush
@@ -208,6 +209,8 @@ module Datapath (
     Hazard u_Hazard(
         .rsD(rsD), 
         .rtD(rtD),
+        .used_rsD(used_rsD),
+        .used_rtD(used_rtD),
         .RF_address3E(RF_address3E), 
         .RF_address3M(RF_address3M), 
         .RF_address3DM(RF_address3DM), 

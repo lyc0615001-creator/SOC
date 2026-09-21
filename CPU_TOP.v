@@ -47,8 +47,8 @@ module CPU_TOP (
 
     data_ram u_data_ram (
       .clka(clk),    // input wire clka
-      .ena(1'b1),      // input wire ena
-      .wea(dm_write_enM),      // input wire [3 : 0] wea
+      .ena(clk_en),      // input wire ena
+      .wea({4{dm_write_enM}}),      // input wire [3 : 0] wea
       .addra(data_addr[9:0]),  // input wire [9 : 0] addra
       .dina(DM_data_iM),    // input wire [31 : 0] dina
       .douta(DM_data_oDM)  // output wire [31 : 0] douta

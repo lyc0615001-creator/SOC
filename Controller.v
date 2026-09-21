@@ -7,9 +7,10 @@ module Controller (
     output reg_write_enW, alu_src_muxE,  reg_dst_muxD, reg_data_muxDM, dm_write_enM,
     output reg_data_muxE, reg_data_muxM,
     output branchD, jumpD,
+    output used_rsD, used_rtD,
     output [2:0] alu_controlE
 );
-    wire [6:0] sign;
+    wire [8:0] sign;
 
     wire reg_write_enD;
     // wire reg_dst_muxD;
@@ -26,7 +27,8 @@ module Controller (
         .alu_control(alu_controlD)
     );
 
-    assign {reg_write_enD, alu_src_muxD,  reg_dst_muxD, reg_data_muxD, dm_write_enD, branchD, jumpD} = sign;
+    // 判断是否用到了rs 后续可做优化
+    assign {reg_write_enD, alu_src_muxD,  reg_dst_muxD, reg_data_muxD, dm_write_enD, branchD, jumpD, used_rsD, used_rtD} = sign;
 
     // branch
 
@@ -59,22 +61,22 @@ endmodule
 module main_desc (
     input [5:0] op_code,
     input [5:0] funct,
-    output [6:0] sign,
+    output [8:0] sign,
     output [2:0] alu_control
 );
     wire [1:0] aluop;
-    wire [8:0] signs;
+    wire [10:0] signs;
 
-    assign signs = (op_code == 6'b000000) ? 9'b101000010 : // R-Type
-                   (op_code == 6'b100011) ? 9'b110100000 : // lw
-                   (op_code == 6'b101011) ? 9'b010010000 : // sw
-                   (op_code == 6'b000100) ? 9'b010001001 : // beq
-                   (op_code == 6'b000010) ? 9'b000000100 : // jump
-                   (op_code == 6'b001000) ? 9'b110000000 : // addi
-                   9'b000000000;
+    assign signs = (op_code == 6'b000000) ? 11'b10101000011 : // R-Type
+                   (op_code == 6'b100011) ? 11'b00110100010 : // lw
+                   (op_code == 6'b101011) ? 11'b00010010011 : // sw
+                   (op_code == 6'b000100) ? 11'b01010001011 : // beq
+                   (op_code == 6'b000010) ? 11'b00000000100 : // jump
+                   (op_code == 6'b001000) ? 11'b00110000010 : // addi
+                   11'b00000000000;
 
-    assign aluop = signs[1:0];
-    assign sign = signs[8:2];
+    assign aluop = signs[10:9];
+    assign sign = signs[8:0];
 
     assign alu_control = (aluop == 2'b00) ? 3'b010 : // lw/sw -- add
                          (aluop == 2'b01) ? 3'b110 : // beq/jump -- sub

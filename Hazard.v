@@ -22,6 +22,7 @@
 
 module Hazard(
         input [4:0] rsD, rtD,
+        input used_rsD, used_rtD,
         input [4:0] RF_address3E, RF_address3M, RF_address3DM,
         input reg_write_enE, reg_write_enM, reg_write_enDM,
         input reg_data_muxE, reg_data_muxM,
@@ -29,6 +30,8 @@ module Hazard(
         output stall, flush, flush_control,
         output [1:0] forwardAD, forwardBD
     );
+
+    wire hazardE, hazardM;
 
     // F IM D E M DM W
 
@@ -57,9 +60,10 @@ module Hazard(
     // D½×¶ÎÅĞ±ğ¼Ü¹¹
     // ÅĞ¶ÏÌõ¼ş£º (reg_write_enE &&  RF_adress3E == rsD || RF_adress3E == rtD) or (reg_write_enM &&  RF_adress3M == rsD || RF_adress3M == rtD)
 
-    assign stall = ((RF_address3E != 5'b0) && (RF_address3E == rsD || RF_address3E == rtD) && reg_data_muxE) 
-                 || ((RF_address3M != 5'b0) && (RF_address3M == rsD || RF_address3M == rtD) && reg_data_muxM);
-    
+    assign hazardE = reg_data_muxE && (RF_address3E != 5'b0) && ((used_rsD && RF_address3E == rsD) || (used_rtD && RF_address3E == rtD));
+    assign hazardM = reg_data_muxM && (RF_address3M != 5'b0) && ((used_rsD && RF_address3M == rsD) || (used_rtD && RF_address3M == rtD));
+
+    assign stall = hazardE || hazardM;
     assign flush = stall;
 
     // beq jump ¿ØÖÆÃ°ÏÕ
