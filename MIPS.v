@@ -10,7 +10,7 @@ module MIPS (
     output [31:0] DM_data_iM
 );
     wire reg_write_enE, reg_write_enM, reg_write_enDM;
-    wire reg_write_enW, alu_src_muxE, reg_data_muxDM, reg_dst_muxE;
+    wire reg_write_enW, alu_src_muxE, reg_data_muxDM, reg_dst_muxD;
     wire reg_data_muxE, reg_data_muxM;
     wire branchD, jumpD;
     wire flush;
@@ -31,7 +31,7 @@ module MIPS (
     .reg_data_muxE(reg_data_muxE),
     .reg_data_muxM(reg_data_muxM),
     .reg_data_muxDM(reg_data_muxDM),
-    .reg_dst_muxE(reg_dst_muxE),
+    .reg_dst_muxD(reg_dst_muxD),
     .branchD(branchD),
     .jumpD(jumpD),
     .alu_controlE(alu_controlE),
@@ -59,7 +59,7 @@ module MIPS (
         .reg_write_enDM(reg_write_enDM), 
         .reg_write_enW(reg_write_enW), 
         .alu_src_muxE(alu_src_muxE),  
-        .reg_dst_muxE(reg_dst_muxE), 
+        .reg_dst_muxD(reg_dst_muxD), 
         .reg_data_muxE(reg_data_muxE), 
         .reg_data_muxM(reg_data_muxM), 
         .reg_data_muxDM(reg_data_muxDM), 

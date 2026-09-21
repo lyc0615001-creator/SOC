@@ -33,7 +33,7 @@ module CPU_TOP (
     // Ö¸Áî´æ´¢
     instr_ram_new u_instr_ram_new (
       .clka(clk),    // input wire clka
-      .ena(clk_en & ~stall),      // input wire ena
+      .ena(clk_en && ~stall),      // input wire ena
       .wea(4'b0000),      // input wire [3 : 0] wea
       .addra(pc_oF[9:2]),  // input wire [7 : 0] addra
       .dina(32'b0),    // input wire [31 : 0] dina

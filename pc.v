@@ -9,7 +9,7 @@ module pc (
     always @(posedge clk or negedge rst) begin
         if(!rst) begin
             pc_o <= 32'd0;
-        end else if (clk_en & en) begin
+        end else if (clk_en && en) begin
             pc_o <= pc_i;
         end
     end
