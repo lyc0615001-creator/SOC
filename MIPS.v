@@ -1,50 +1,72 @@
 module MIPS (
     input clk, rst,
     input clk_en,
-    input [31:0] instr,
-    input [31:0] DM_data_o,
-    output dm_write_en,
-    output [31:0] pc_o, 
-    output [31:0] alu_result,
-    output [31:0] DM_data_i
+    input [31:0] instrIM,
+    input [31:0] DM_data_oDM,
+    output dm_write_enM,
+    output stall,
+    output [31:0] pc_oF, pc_oM,
+    output [31:0] alu_resultM,
+    output [31:0] DM_data_iM
 );
-
-    wire reg_write_en, alu_src_mux, reg_data_mux, reg_dst_mux;
-    wire branch, jump;
-    wire [2:0] alu_control;
+    wire reg_write_enE, reg_write_enM, reg_write_enDM;
+    wire reg_write_enW, alu_src_muxE, reg_data_muxDM, reg_dst_muxE;
+    wire reg_data_muxE, reg_data_muxM;
+    wire branchD, jumpD;
+    wire flush;
+    wire [2:0] alu_controlE;
+    wire [31:0] instrD;
 
     Datapath u_Datapath(
     .clk(clk), 
     .rst(rst),
     .clk_en(clk_en),
-    .instr(instr),
-    .DM_data_o(DM_data_o),
-    .reg_write_en(reg_write_en),
-    .alu_src_mux(alu_src_mux),
-    .reg_data_mux(reg_data_mux),
-    .reg_dst_mux(reg_dst_mux),
-    .branch(branch),
-    .jump(jump),
-    .alu_control(alu_control),
+    .instrIM(instrIM),
+    .DM_data_oDM(DM_data_oDM),
+    .reg_write_enE(reg_write_enE), 
+    .reg_write_enM(reg_write_enM), 
+    .reg_write_enDM(reg_write_enDM), 
+    .reg_write_enW(reg_write_enW),
+    .alu_src_muxE(alu_src_muxE),
+    .reg_data_muxE(reg_data_muxE),
+    .reg_data_muxM(reg_data_muxM),
+    .reg_data_muxDM(reg_data_muxDM),
+    .reg_dst_muxE(reg_dst_muxE),
+    .branchD(branchD),
+    .jumpD(jumpD),
+    .alu_controlE(alu_controlE),
     // out
-    .pc_o(pc_o),
-    .alu_result(alu_result),
-    .DM_data_i(DM_data_i)
+    .pc_oF(pc_oF),
+    .pc_oM(pc_oM),
+    .alu_resultM(alu_resultM),
+    .DM_data_iM(DM_data_iM),
+    .instrD(instrD),
+    .stall(stall), 
+    .flush(flush)
 );
 
     Controller u_Controller(
         .clk(clk),
-        .op_code(instr[31:26]),
-        .funct(instr[5:0]),
+        .rst(rst),
+        .clk_en(clk_en),
+        .stall(stall), 
+        .flush(flush),
+        .op_code(instrD[31:26]),
+        .funct(instrD[5:0]),
         // out
-        .reg_write_en(reg_write_en), 
-        .alu_src_mux(alu_src_mux),  
-        .reg_dst_mux(reg_dst_mux), 
-        .reg_data_mux(reg_data_mux), 
-        .dm_write_en(dm_write_en),
-        .branch(branch), 
-        .jump(jump),
-        .alu_control(alu_control)
+        .reg_write_enE(reg_write_enE), 
+        .reg_write_enM(reg_write_enM), 
+        .reg_write_enDM(reg_write_enDM), 
+        .reg_write_enW(reg_write_enW), 
+        .alu_src_muxE(alu_src_muxE),  
+        .reg_dst_muxE(reg_dst_muxE), 
+        .reg_data_muxE(reg_data_muxE), 
+        .reg_data_muxM(reg_data_muxM), 
+        .reg_data_muxDM(reg_data_muxDM), 
+        .dm_write_enM(dm_write_enM),
+        .branchD(branchD), 
+        .jumpD(jumpD),
+        .alu_controlE(alu_controlE)
     );
     
 endmodule

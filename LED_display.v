@@ -22,11 +22,12 @@
 module LED_display(
         input clk,
         input rst,
-        input display_status, // 1 写 0 正常
+        input display_status, // 1 写 0 正常 
         input [31:0] T_clk,
         input [31:0] display_data,
         output [7:0] seg,
-        output [1:0] sel
+        output [1:0] sel,
+        output [3:0] led
     );
 
     wire  [3:0] seg10, seg1;
@@ -44,6 +45,8 @@ module LED_display(
 
     reg [2:0] sw_phase;
 
+    assign led = display_status ? 4'b0001 : 4'b0000;
+
     // 判断sw下 展示load还是data
     always @(posedge clk or negedge rst) begin
         if (!rst) begin
@@ -51,7 +54,7 @@ module LED_display(
             display_type <= 2'b0; // 默认data
         end else begin
             if(led_clk_en) begin
-                if (!display_status) begin
+                if (display_status == 1'b0 | display_status === 1'bx) begin
                     sw_phase <= 3'b0;
                     display_type <= 2'b0;
                 end else if (sw_phase < 3'd6) begin
@@ -96,8 +99,8 @@ module LED (
         output reg [7:0] seg,
         output reg [1:0] sel
     );
-    parameter T = 50000;
-    // parameter T = 2;
+    // parameter T = 50000;
+    parameter T = 2;
 
     parameter load = 2'b01;
     parameter blank = 2'b10;

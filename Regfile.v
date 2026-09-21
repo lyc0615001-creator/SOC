@@ -15,10 +15,10 @@ module Regfile (
         
     end
 
-    // assign RF_data_o1 = (RF_address1 == 5'd0) ? 32'd0 : ((RF_address1 == RF_address3) ? RF_data_i : regfile[RF_address1]); 
-    // assign RF_data_o2 = (RF_address2 == 5'd0) ? 32'd0 : ((RF_address2 == RF_address3) ? RF_data_i : regfile[RF_address2]); 
+    assign RF_data_o1 = (RF_address1 == 5'd0) ? 32'd0 : ((RF_address1 == RF_address3) ? RF_data_i : regfile[RF_address1]); 
+    assign RF_data_o2 = (RF_address2 == 5'd0) ? 32'd0 : ((RF_address2 == RF_address3) ? RF_data_i : regfile[RF_address2]); 
     
-    assign RF_data_o1 = (RF_address1 == 5'd0) ? 32'd0 : regfile[RF_address1]; 
-    assign RF_data_o2 = (RF_address2 == 5'd0) ? 32'd0 : regfile[RF_address2]; 
+    // assign RF_data_o1 = (RF_address1 == 5'd0) ? 32'd0 : regfile[RF_address1]; 
+    // assign RF_data_o2 = (RF_address2 == 5'd0) ? 32'd0 : regfile[RF_address2]; 
 
 endmodule

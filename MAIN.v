@@ -24,11 +24,12 @@ module MAIN(
         input clk,
         input rst,
         output [7:0] seg,
-        output [1:0] sel
+        output [1:0] sel,
+        output [3:0] led
     );
 
-    parameter T = 100_000_000; //1HZ 可调
-    // parameter T = 32;
+    // parameter T = 50_000_000; //x HZ 可调
+    parameter T = 32;
 
     reg [31:0] T_clk;
 
@@ -46,7 +47,7 @@ module MAIN(
         .clk(clk),
         .rst(rst),
         .T_clk(T_clk),
-        .dm_write_en(display_status),
+        .dm_write_enM(display_status),
         .display_data(display_data)
     );
 
@@ -58,6 +59,7 @@ module MAIN(
         .T_clk(T_clk),
         .display_data(display_data),
         .seg(seg),
-        .sel(sel)
+        .sel(sel),
+        .led(led)
     );
 endmodule
