@@ -72,14 +72,10 @@ module LED_display(
     always @(posedge clk or negedge rst) begin
         if (!rst) begin
             reg_display_data <= 32'b0;
-            // seg10 <= 4'd0;
-            // seg1  <= 4'd0;
         end
         else begin
             if (led_clk_en) begin
                 reg_display_data <= display_data[6:0];
-                // seg10 <= (reg_display_data / 10) % 10;
-                // seg1  <= reg_display_data % 10;
             end
         end
     end

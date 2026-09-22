@@ -2,7 +2,7 @@ module CPU_TOP (
     input clk,
     input rst,
     input [31:0] T_clk,
-    output wire dm_write_enM,
+    output wire dm_write_en_effM,
     output wire [31:0] display_data
     );
 
@@ -13,7 +13,7 @@ module CPU_TOP (
     wire clk_en, stall;
 
     assign data_addr = alu_resultM;
-    assign display_data = dm_write_enM ? DM_data_iM : pc_oM >> 2;
+    assign display_data = dm_write_en_effM ? DM_data_iM : pc_oM >> 2;
 
     MIPS u_mips(
       .clk(clk),
@@ -22,7 +22,7 @@ module CPU_TOP (
       .instrIM(instrIM),
       .DM_data_oDM(DM_data_oDM),
       // out
-      .dm_write_enM(dm_write_enM),
+      .dm_write_en_effM(dm_write_en_effM),
       .stall(stall),
       .pc_oF(pc_oF),
       .pc_oM(pc_oM),
@@ -40,22 +40,17 @@ module CPU_TOP (
       .douta(instrIM)  // output wire [31 : 0] douta
     );
 
-    // 指令存储， 测试单周期
-    // instr_ram_pri u_instr_ram_pri(.pc(pc_oF[9:2]), .instr(instrF));
-
     // 数据存储
-
     data_ram u_data_ram (
       .clka(clk),    // input wire clka
       .ena(clk_en),      // input wire ena
-      .wea({4{dm_write_enM}}),      // input wire [3 : 0] wea
+      .wea({4{dm_write_en_effM}}),      // input wire [3 : 0] wea
       .addra(data_addr[9:0]),  // input wire [9 : 0] addra
       .dina(DM_data_iM),    // input wire [31 : 0] dina
       .douta(DM_data_oDM)  // output wire [31 : 0] douta
     );
 
     // 分频器
-
     cpu_clk_en u_cpu_clk_en(
         .clk(clk),
         .rst(rst),

@@ -1,6 +1,6 @@
 module Controller (
     input clk, rst, clk_en,
-    input stall, flush,
+    input stall,
     input [5:0] op_code,
     input [5:0] funct,
     output reg_write_enE, reg_write_enM, reg_write_enDM,
@@ -33,28 +33,27 @@ module Controller (
     // branch
 
     // reg_write_en
-    flopenrc #(1) u_flopenrc_reg_write_enE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(flush), .din(reg_write_enD), .dout(reg_write_enE));
+    flopenrc #(1) u_flopenrc_reg_write_enE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(reg_write_enD), .dout(reg_write_enE));
     flopenrc #(1) u_flopenrc_reg_write_enM(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(reg_write_enE), .dout(reg_write_enM));
     flopenrc #(1) u_flopenrc_reg_write_enDM(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(reg_write_enM), .dout(reg_write_enDM));
     flopenrc #(1) u_flopenrc_reg_write_enW(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(reg_write_enDM), .dout(reg_write_enW));
 
     // reg_dst_mux
-    // flopenrc #(1) u_flopenrc_reg_dst_muxE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(flush), .din(reg_dst_muxD), .dout(reg_dst_muxE));
 
     // alu_src_mux
-    flopenrc #(1) u_flopenrc_alu_src_muxE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(flush), .din(alu_src_muxD), .dout(alu_src_muxE));
+    flopenrc #(1) u_flopenrc_alu_src_muxE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(alu_src_muxD), .dout(alu_src_muxE));
 
     // dm_write_en
-    flopenrc #(1) u_flopenrc_dm_write_enE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(flush), .din(dm_write_enD), .dout(dm_write_enE));
+    flopenrc #(1) u_flopenrc_dm_write_enE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(dm_write_enD), .dout(dm_write_enE));
     flopenrc #(1) u_flopenrc_dm_write_enM(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(dm_write_enE), .dout(dm_write_enM));
 
     // reg_data_mux
-    flopenrc #(1) u_flopenrc_reg_data_muxE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(flush), .din(reg_data_muxD), .dout(reg_data_muxE));
+    flopenrc #(1) u_flopenrc_reg_data_muxE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(reg_data_muxD), .dout(reg_data_muxE));
     flopenrc #(1) u_flopenrc_reg_data_muxM(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(reg_data_muxE), .dout(reg_data_muxM));
     flopenrc #(1) u_flopenrc_reg_data_muxDM(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(reg_data_muxM), .dout(reg_data_muxDM));
 
     // alu_control
-    flopenrc #(3) u_flopenrc_alu_controlE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(flush), .din(alu_controlD), .dout(alu_controlE));
+    flopenrc #(3) u_flopenrc_alu_controlE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(alu_controlD), .dout(alu_controlE));
 
 endmodule
 

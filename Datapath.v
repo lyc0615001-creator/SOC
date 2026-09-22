@@ -10,7 +10,7 @@ module Datapath (
     input used_rsD, used_rtD,
     input [2:0] alu_controlE,
     output [31:0] pc_oF, alu_resultM, DM_data_iM, pc_oM, instrD,
-    output stall, flush
+    output stall, validM
 );
 
     // F阶段变量
@@ -20,7 +20,7 @@ module Datapath (
     wire [31:0] pc_plus4IM;
     
     // D阶段变量
-    wire zeroD, pc_srcD;
+    wire zeroD, branch_selD, jump_selD;
     wire [4:0] rsD, rtD, rdD, RF_address3D;
     wire [15:0] lw_offsetD;
     wire [31:0] pc_plus4D, pc_branchD, pc_jumpD, pc_nextD, pc_iD;
@@ -46,7 +46,12 @@ module Datapath (
     // HAZARD 变量
     wire [1:0] forwardAD, forwardBD;
     wire [31:0] RF_data_o1_mux4D, RF_data_o2_mux4D;
-    wire flush_control,  flush_controlD;
+    wire redirectD;
+
+    // Valid_pipeline 变量
+    wire validIM, validD, validE, validM, validDM, validW;
+    wire [5:0] valid_signs;
+    wire rf_write_enW;
 
     assign rsD = instrD[25:21];
     assign rtD = instrD[20:16];
@@ -72,14 +77,14 @@ module Datapath (
 
     // IM -> D 流水线触发器
     // 延迟变量 instrIM pc_plus4IM
-    flopenrc #(32) u_flopenrc_instrD(.clk(clk), .rst(rst), .clk_en(clk_en), .en(~stall), .clear(flush_control || flush_controlD), .din(instrIM), .dout(instrD));
-    flopenrc #(32) u_flopenrc_pc_plus4D(.clk(clk), .rst(rst), .clk_en(clk_en), .en(~stall), .clear(flush_control || flush_controlD), .din(pc_plus4IM), .dout(pc_plus4D));
+    flopenrc #(32) u_flopenrc_instrD(.clk(clk), .rst(rst), .clk_en(clk_en), .en(~stall), .clear(1'b0), .din(instrIM), .dout(instrD));
+    flopenrc #(32) u_flopenrc_pc_plus4D(.clk(clk), .rst(rst), .clk_en(clk_en), .en(~stall), .clear(1'b0), .din(pc_plus4IM), .dout(pc_plus4D));
 
-    
+    assign rf_write_enW = validW && reg_write_enW;
     Regfile u_Regfile(
         .clk(clk), 
         .rst(rst),
-        .w_en(reg_write_enW),
+        .w_en(rf_write_enW),
         .clk_en(clk_en),
         .RF_address1(rsD),
         .RF_address2(rtD), 
@@ -92,12 +97,10 @@ module Datapath (
 
     // D -> E 流水线触发器
     // 延迟变量 RF_address3D RF_data_o1_mux4D RF_data_o2_mux4D sign_extD
-    // flopenrc #(5) u_flopenrc_rtE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(flush), .din(rtD), .dout(rtE));
-    // flopenrc #(5) u_flopenrc_rdE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(flush), .din(rdD), .dout(rdE));
-    flopenrc #(5) u_flopenrc_RF_address3E(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(flush), .din(RF_address3D), .dout(RF_address3E));
-    flopenrc #(32) u_flopenrc_RF_data_o1_mux4E(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(flush), .din(RF_data_o1_mux4D), .dout(RF_data_o1_mux4E));
-    flopenrc #(32) u_flopenrc_RF_data_o2_mux4E(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(flush), .din(RF_data_o2_mux4D), .dout(RF_data_o2_mux4E));
-    flopenrc #(32) u_flopenrc_sign_extE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(flush), .din(sign_extD), .dout(sign_extE));
+    flopenrc #(5) u_flopenrc_RF_address3E(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(RF_address3D), .dout(RF_address3E));
+    flopenrc #(32) u_flopenrc_RF_data_o1_mux4E(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(RF_data_o1_mux4D), .dout(RF_data_o1_mux4E));
+    flopenrc #(32) u_flopenrc_RF_data_o2_mux4E(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(RF_data_o2_mux4D), .dout(RF_data_o2_mux4E));
+    flopenrc #(32) u_flopenrc_sign_extE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(sign_extD), .dout(sign_extE));
 
     // E -> M 流水线触发器  
     // 延迟变量 alu_resultE DM_data_iE RF_address3E
@@ -116,14 +119,11 @@ module Datapath (
     flopenrc #(5) u_flopenrc_RF_address3W(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(RF_address3DM), .dout(RF_address3W));
     flopenrc #(32) u_flopenrc_RF_data_iW(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(RF_data_iDM), .dout(RF_data_iW));
 
-    // 控制冒险专属flush_controlD触发器
-    flopenrc #(1) u_flopenrc_flush_controlD(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(flush_control), .dout(flush_controlD));
-
     // LED展示 pc F->M
     wire [31:0] pc_oD, pc_oE, pc_oIM;
     flopenrc #(32) u_flopenrc_pc_oIM(.clk(clk), .rst(rst), .clk_en(clk_en), .en(~stall), .clear(1'b0), .din(pc_oF), .dout(pc_oIM));
     flopenrc #(32) u_flopenrc_pc_oD(.clk(clk), .rst(rst), .clk_en(clk_en), .en(~stall), .clear(1'b0), .din(pc_oIM), .dout(pc_oD));
-    flopenrc #(32) u_flopenrc_pc_oE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(flush), .din(pc_oD), .dout(pc_oE));
+    flopenrc #(32) u_flopenrc_pc_oE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(pc_oD), .dout(pc_oE));
     flopenrc #(32) u_flopenrc_pc_oM(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(pc_oE), .dout(pc_oM));
 
 
@@ -164,7 +164,7 @@ module Datapath (
 
     // ====beq====
     assign zeroD = (RF_data_o1_mux4D == RF_data_o2_mux4D);
-    assign pc_srcD = zeroD && branchD;
+    assign branch_selD = validD && !stall && zeroD && branchD;
 
 
     sl2 u_sl2_branch(
@@ -178,11 +178,11 @@ module Datapath (
         .add_o(pc_branchD)
         );
 
-    // pc_srcD
+    // branch_selD
     mux2 #(32) u_mux2_pc_next (
         .data_i1(pc_branchD), 
         .data_i2(pc_plus4F), 
-        .sel(pc_srcD), 
+        .sel(branch_selD), 
         .data_o(pc_nextD)
         );
 
@@ -195,13 +195,14 @@ module Datapath (
         );
 
     assign pc_jumpD = {pc_plus4D[31:28], jump_sl2D[27:0]};
+    assign jump_selD = validD && !stall && jumpD;
 
 
-    // jumpD
+    // jump_selD
     mux2 #(32) u_mux2_pc_i (
         .data_i1(pc_jumpD), 
         .data_i2(pc_nextD), 
-        .sel(jumpD), 
+        .sel(jump_selD), 
         .data_o(pc_iD)
         );
 
@@ -219,13 +220,17 @@ module Datapath (
         .reg_write_enDM(reg_write_enDM), 
         .reg_data_muxE(reg_data_muxE),
         .reg_data_muxM(reg_data_muxM),
-        .pc_srcD(pc_srcD),
-        .jumpD(jumpD),
-        .stall(stall), 
-        .flush(flush),
-        .flush_control(flush_control),
+        .branch_selD(branch_selD),
+        .jump_selD(jump_selD),
+        .validD(validD),
+        .validE(validE),
+        .validM(validM),
+        .validDM(validDM),
+        // out
         .forwardAD(forwardAD), 
-        .forwardBD(forwardBD)
+        .forwardBD(forwardBD),
+        .stall(stall), 
+        .redirectD(redirectD)
     );
 
     mux4 #(32) u_mux4_RF_data1(
@@ -244,6 +249,18 @@ module Datapath (
         .data_i4(RF_data_iDM),
         .sel(forwardBD),
         .data_o(RF_data_o2_mux4D)
+    );
+
+    // valid_pipeline 
+    assign {validIM, validD, validE, validM, validDM, validW} = valid_signs;
+
+    Valid_pipeline u_Valid_pipeline(
+        .clk(clk),
+        .rst(rst),
+        .clk_en(clk_en),
+        .stall(stall),
+        .redirectD(redirectD),
+        .valid_signs(valid_signs)
     );
     
 endmodule
