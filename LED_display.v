@@ -95,8 +95,8 @@ module LED (
         output reg [7:0] seg,
         output reg [1:0] sel
     );
-    // parameter T = 50000;
-    parameter T = 2;
+    parameter T = 50000;
+    // parameter T = 2;
 
     parameter load = 2'b01;
     parameter blank = 2'b10;

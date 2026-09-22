@@ -44,17 +44,15 @@ module Hazard(
     // 定义 forwardAD 000-normal  001-E  010-M  011-DM  100-W 
     // ** v2.2 删除W阶段前递，使用同周期读写判断
 
-    assign forwardAD = !validD ? 2'b00 :
-                       ((validE && reg_write_enE && !reg_data_muxE && (RF_address3E != 5'b0) && (RF_address3E == rsD)) ? 2'b01 :
+    assign forwardAD = (validE && reg_write_enE && !reg_data_muxE && (RF_address3E != 5'b0) && (RF_address3E == rsD)) ? 2'b01 :
                        (validM && reg_write_enM && !reg_data_muxM && (RF_address3M != 5'b0) && (RF_address3M == rsD)) ? 2'b10 :
                        (validDM && reg_write_enDM && (RF_address3DM != 5'b0) && (RF_address3DM == rsD)) ? 2'b11 :
-                       2'b00);
+                       2'b00;
     
-    assign forwardBD = !validD ? 2'b00 :
-                       ((validE && reg_write_enE && !reg_data_muxE && (RF_address3E != 5'b0) && (RF_address3E == rtD)) ? 2'b01 :
+    assign forwardBD = (validE && reg_write_enE && !reg_data_muxE && (RF_address3E != 5'b0) && (RF_address3E == rtD)) ? 2'b01 :
                        (validM && reg_write_enM && !reg_data_muxM && (RF_address3M != 5'b0) && (RF_address3M == rtD))  ? 2'b10 :
                        (validDM && reg_write_enDM && (RF_address3DM != 5'b0) && (RF_address3DM == rtD)) ? 2'b11 :
-                       2'b00);
+                       2'b00;
 
     // lw 数据冒险
     // 原因： 如果当前指令所需数据来自上一条指令lw，那么普通的数据前递无法解决问题，因为lw指令在E/M阶段只有地址 
