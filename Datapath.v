@@ -1,3 +1,4 @@
+`timescale 1ns / 1ps
 module Datapath (
     input clk, rst,
     input clk_en,

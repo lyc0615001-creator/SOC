@@ -31,7 +31,7 @@ module alu(
                         (alu_control == 3'b110) ? (alu_data_i1 - alu_data_i2) :
                         (alu_control == 3'b000) ? (alu_data_i1 & alu_data_i2) :
                         (alu_control == 3'b001) ? (alu_data_i1 | alu_data_i2) :
-                        (alu_control == 3'b111) ? (alu_data_i1 < alu_data_i2) :
+                        (alu_control == 3'b111) ? ($signed(alu_data_i1) < $signed(alu_data_i2)) :
                         32'd0;
 
 endmodule
