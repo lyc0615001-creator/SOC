@@ -28,8 +28,8 @@ module MAIN(
         output [3:0] led
     );
 
-    parameter T = 50_000_000; //x HZ 可调
-    // parameter T = 32;
+    // parameter T = 50_000_000; //x HZ 可调
+    parameter T = 32;
 
     reg [31:0] T_clk;
 

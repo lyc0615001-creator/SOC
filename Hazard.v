@@ -22,17 +22,20 @@
 
 module Hazard(
         input [4:0] rsD, rtD,
+        input [4:0] rsE, rtE,
         input used_rsD, used_rtD,
         input [4:0] RF_address3E, RF_address3M, RF_address3DM,
         input reg_write_enE, reg_write_enM, reg_write_enDM,
-        input reg_data_muxE, reg_data_muxM,
-        input branch_selD, jump_selD,
+        input reg_data_muxE, reg_data_muxM, reg_data_muxDM,
+        input branch_selD, jump_selD, branchD,
         input validD, validE, validM, validDM,
         output [1:0] forwardAD, forwardBD,
+        output forwardAE, forwardBE,
         output stall, redirectD
     );
 
     wire hazardE, hazardM;
+    wire matchA, matchB;
 
     // F IM D E M DM W
 
@@ -61,10 +64,31 @@ module Hazard(
     // D阶段判别架构
     // 判断条件： (reg_write_enE &&  RF_adress3E == rsD || RF_adress3E == rtD) or (reg_write_enM &&  RF_adress3M == rsD || RF_adress3M == rtD)
 
+    // assign hazardE = validD && validE && reg_write_enE && reg_data_muxE && (RF_address3E != 5'b0) && ((used_rsD && RF_address3E == rsD) || (used_rtD && RF_address3E == rtD));
+    // assign hazardM = validD && validM && reg_write_enM && reg_data_muxM && (RF_address3M != 5'b0) && ((used_rsD && RF_address3M == rsD) || (used_rtD && RF_address3M == rtD));
+
+    // assign stall = hazardE || hazardM;
+
+    // ** v3.1 前递E架构 仅针对lw指令的DM阶段前递
+    // 目的：使得lw-use少暂停一个回合（仅针对lw-R）
+    // 判断条件：DM阶段写地址非0 且等于E阶段读地址 && 指令有效 && 写指令
+
+    // addi $t0 $zero 11
+    // addi $t0 $zero 1
+    // add $t2 $to $t1
+    // 正常1指令前递D给2，2指令前递D给3. 加入E阶段前置后，随后又会1指令前递E给3，引起错误
+    // 判断条件 发现在DM前递E时，先判断M是否已和E匹配，1则代表上一轮已经发生D前递
+
+    assign matchA = validM && reg_write_enM && (RF_address3M != 5'b0) && (RF_address3M == rsE);
+    assign matchB = validM && reg_write_enM && (RF_address3M != 5'b0) && (RF_address3M == rtE);
+
+    assign forwardAE = (validDM && reg_write_enDM && reg_data_muxDM && (RF_address3DM != 5'b0) && (RF_address3DM == rsE) && !matchA);
+    assign forwardBE = (validDM && reg_write_enDM && reg_data_muxDM && (RF_address3DM != 5'b0) && (RF_address3DM == rtE) && !matchB);
+
     assign hazardE = validD && validE && reg_write_enE && reg_data_muxE && (RF_address3E != 5'b0) && ((used_rsD && RF_address3E == rsD) || (used_rtD && RF_address3E == rtD));
     assign hazardM = validD && validM && reg_write_enM && reg_data_muxM && (RF_address3M != 5'b0) && ((used_rsD && RF_address3M == rsD) || (used_rtD && RF_address3M == rtD));
 
-    assign stall = hazardE || hazardM;
+    assign stall = hazardE || (branchD && hazardM);
 
     // beq jump 控制冒险
     // 原因：当前执行beq或jump，需要生成一个redirectD信号，无效之后的两条指令

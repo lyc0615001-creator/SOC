@@ -5,7 +5,7 @@ module Datapath (
     input [31:0] instrIM,
     input [31:0] DM_data_oDM,
     input reg_write_enE, reg_write_enM, reg_write_enDM,
-    input reg_write_enW, alu_src_muxE, reg_data_muxDM, reg_dst_muxD,
+    input reg_write_enW, alu_src_muxE, reg_data_muxDM, reg_dst_muxE,
     input reg_data_muxE, reg_data_muxM,
     input branchD, jumpD,
     input used_rsD, used_rtD,
@@ -22,16 +22,16 @@ module Datapath (
     
     // D阶段变量
     wire zeroD, branch_selD, jump_selD;
-    wire [4:0] rsD, rtD, rdD, RF_address3D;
+    wire [4:0] rsD, rtD, rdD;
     wire [15:0] lw_offsetD;
     wire [31:0] pc_plus4D, pc_branchD, pc_jumpD, pc_nextD, pc_iD;
     wire [31:0] sign_extD, sign_ext_sl2D, jump_sl2D;
     wire [31:0] RF_data_o1D, RF_data_o2D;
 
     // E阶段变量
-    wire [4:0] RF_address3E;
+    wire [4:0] RF_address3E, rsE, rtE, rdE;
     wire [31:0] sign_extE;
-    wire [31:0] DM_data_iE, alu_data_i2E, alu_resultE;
+    wire [31:0] DM_data_iE, alu_src_i2E, alu_resultE;
     wire [31:0] RF_data_o1_mux4E, RF_data_o2_mux4E;
 
     // M阶段变量
@@ -54,12 +54,16 @@ module Datapath (
     wire [5:0] valid_signs;
     wire rf_write_enW;
 
+    // 前递E变量
+    wire [31:0] alu_src_i1E, alu_src_i0E;
+    wire forwardAE, forwardBE;
+
     assign rsD = instrD[25:21];
     assign rtD = instrD[20:16];
     assign rdD = instrD[15:11];
     assign lw_offsetD = instrD[15:0];
 
-    assign DM_data_iE = RF_data_o2_mux4E;
+    assign DM_data_iE = alu_src_i0E;
 
     // 指令执行模块
 
@@ -97,11 +101,14 @@ module Datapath (
 
 
     // D -> E 流水线触发器
-    // 延迟变量 RF_address3D RF_data_o1_mux4D RF_data_o2_mux4D sign_extD
-    flopenrc #(5) u_flopenrc_RF_address3E(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(RF_address3D), .dout(RF_address3E));
+    // 延迟变量 RF_data_o1_mux4D RF_data_o2_mux4D sign_extD rsD rtD rdD
     flopenrc #(32) u_flopenrc_RF_data_o1_mux4E(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(RF_data_o1_mux4D), .dout(RF_data_o1_mux4E));
     flopenrc #(32) u_flopenrc_RF_data_o2_mux4E(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(RF_data_o2_mux4D), .dout(RF_data_o2_mux4E));
     flopenrc #(32) u_flopenrc_sign_extE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(sign_extD), .dout(sign_extE));
+
+    flopenrc #(5) u_flopenrc_rsE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(rsD), .dout(rsE));
+    flopenrc #(5) u_flopenrc_rtE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(rtD), .dout(rtE));
+    flopenrc #(5) u_flopenrc_rdE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(rdD), .dout(rdE));
 
     // E -> M 流水线触发器  
     // 延迟变量 alu_resultE DM_data_iE RF_address3E
@@ -131,8 +138,8 @@ module Datapath (
     // ====R====
     alu u_alu(
         .alu_control(alu_controlE),
-        .alu_data_i1(RF_data_o1_mux4E),
-        .alu_data_i2(alu_data_i2E),
+        .alu_data_i1(alu_src_i1E),
+        .alu_data_i2(alu_src_i2E),
         .alu_data_o(alu_resultE)
         );
 
@@ -142,9 +149,9 @@ module Datapath (
     // alu_src_muxE
     mux2 #(32) u_mux2_alu_data_i2 (
         .data_i1(sign_extE), 
-        .data_i2(RF_data_o2_mux4E), 
+        .data_i2(alu_src_i0E), 
         .sel(alu_src_muxE), 
-        .data_o(alu_data_i2E)
+        .data_o(alu_src_i2E)
         );
 
     // RF_data_iDM
@@ -155,12 +162,12 @@ module Datapath (
         .data_o(RF_data_iDM)
         );
 
-    // reg_dst_muxD
+    // reg_dst_muxE
     mux2 #(5) u_mux2_RF_address3 (
-        .data_i1(rdD), 
-        .data_i2(rtD), 
-        .sel(reg_dst_muxD), 
-        .data_o(RF_address3D)
+        .data_i1(rdE), 
+        .data_i2(rtE), 
+        .sel(reg_dst_muxE), 
+        .data_o(RF_address3E)
         );
 
     // ====beq====
@@ -211,6 +218,8 @@ module Datapath (
     Hazard u_Hazard(
         .rsD(rsD), 
         .rtD(rtD),
+        .rsE(rsE),
+        .rtE(rtE),
         .used_rsD(used_rsD),
         .used_rtD(used_rtD),
         .RF_address3E(RF_address3E), 
@@ -221,15 +230,19 @@ module Datapath (
         .reg_write_enDM(reg_write_enDM), 
         .reg_data_muxE(reg_data_muxE),
         .reg_data_muxM(reg_data_muxM),
+        .reg_data_muxDM(reg_data_muxDM),
         .branch_selD(branch_selD),
         .jump_selD(jump_selD),
         .validD(validD),
         .validE(validE),
         .validM(validM),
         .validDM(validDM),
+        .branchD(branchD),
         // out
         .forwardAD(forwardAD), 
         .forwardBD(forwardBD),
+        .forwardAE(forwardAE),
+        .forwardBE(forwardBE),
         .stall(stall), 
         .redirectD(redirectD)
     );
@@ -264,4 +277,19 @@ module Datapath (
         .valid_signs(valid_signs)
     );
     
+    // lw-use 前递E
+    mux2 #(32) u_mux2_alu_src1 (
+        .data_i1(RF_data_iDM), 
+        .data_i2(RF_data_o1_mux4E), 
+        .sel(forwardAE), 
+        .data_o(alu_src_i1E)
+    );
+
+    mux2 #(32) u_mux2_alu_src0 (
+        .data_i1(RF_data_iDM), 
+        .data_i2(RF_data_o2_mux4E), 
+        .sel(forwardBE), 
+        .data_o(alu_src_i0E)
+    );
+
 endmodule
