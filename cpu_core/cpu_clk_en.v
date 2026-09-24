@@ -5,7 +5,7 @@
 // 
 // Create Date: 2026/09/18 16:39:47
 // Design Name: 
-// Module Name: cpu_clk_en
+// Module Name: cpu_cpu_en
 // Project Name: 
 // Target Devices: 
 // Tool Versions: 
@@ -19,11 +19,11 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 
-module cpu_clk_en(
+module cpu_cpu_en(
         input clk,
         input rst,
         input [31:0] T_clk,
-        output reg clk_en
+        output reg cpu_en
     );
 
     reg [31:0] cnt;
@@ -31,14 +31,14 @@ module cpu_clk_en(
     always @(posedge clk or negedge rst) begin
         if (!rst) begin
             cnt <= 32'd0;
-            clk_en <= 1'b0;
+            cpu_en <= 1'b0;
         end else begin
             if (T_clk != 32'b0 && cnt == T_clk - 1) begin
-                clk_en <= 1'b1;
+                cpu_en <= 1'b1;
                 cnt <= 32'd0;
             end else begin
                 cnt <= cnt + 1;
-                clk_en <= 1'b0;
+                cpu_en <= 1'b0;
             end
         end
     end

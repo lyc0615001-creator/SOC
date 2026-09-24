@@ -47,7 +47,7 @@ module MAIN(
         .clk(clk),
         .rst(rst),
         .T_clk(T_clk),
-        .dm_write_en_effM(display_status),
+        .mem_write_en_effM(display_status),
         .display_data(display_data)
     );
 

@@ -1,61 +1,50 @@
 module CPU_TOP (
     input clk,
     input rst,
-    input [31:0] T_clk,
-    output wire dm_write_en_effM,
-    output wire [31:0] display_data
-    );
+    input [31:0] cpu_rdataDM, // 获得读数据
+    output cpu_en, // 分频信号
+    output mem_readM, // 读使能
+    output mem_writeM, // 写使能
+    output wire [31:0] cpu_addrM, // 读地址
+    output wire [31:0] cpu_wdataM, // 写数据
+    
+    output wire rom_en, // 指令读使能
+    output wire [31:0] pc_oF, // 指令读地址
+    input [31:0] instrIM //获得指令
+  );
 
-    wire [31:0] instrIM, DM_data_oDM, alu_resultM;
-    wire [31:0] data_addr;
+    assign DM_data_oDM = cpu_rdataDM; 
+    assign mem_readM = mem_read_enM;
+    assign mem_writeM = mem_write_en_effM;
+    assign cpu_addrM = alu_resultM;
+    assign cpu_wdataM = DM_data_iM;
 
-    wire [31:0] DM_data_iM, pc_oF, pc_oM;
-    wire clk_en, stall;
 
-    assign data_addr = alu_resultM;
-    assign display_data = dm_write_en_effM ? DM_data_iM : pc_oM >> 2;
+    localparam T_clk = 1;
+    wire mem_read_enM, mem_write_en_effM;
+    wire [31:0] instrIM, alu_resultM, DM_data_iM, DM_data_oDM;
 
     MIPS u_mips(
       .clk(clk),
       .rst(rst),
-      .clk_en(clk_en),
+      .cpu_en(cpu_en),
       .instrIM(instrIM),
       .DM_data_oDM(DM_data_oDM),
       // out
-      .dm_write_en_effM(dm_write_en_effM),
-      .stall(stall),
+      .mem_write_en_effM(mem_write_en_effM),
+      .mem_read_enM(mem_read_enM),
+      .rom_en(rom_en),
       .pc_oF(pc_oF),
-      .pc_oM(pc_oM),
       .alu_resultM(alu_resultM),
       .DM_data_iM(DM_data_iM)
     );
 
-    // 指令存储
-    instr_ram_new u_instr_ram_new (
-      .clka(clk),    // input wire clka
-      .ena(clk_en && ~stall),      // input wire ena
-      .wea(4'b0000),      // input wire [3 : 0] wea
-      .addra(pc_oF[9:2]),  // input wire [7 : 0] addra
-      .dina(32'b0),    // input wire [31 : 0] dina
-      .douta(instrIM)  // output wire [31 : 0] douta
-    );
-
-    // 数据存储
-    data_ram u_data_ram (
-      .clka(clk),    // input wire clka
-      .ena(clk_en),      // input wire ena
-      .wea({4{dm_write_en_effM}}),      // input wire [3 : 0] wea
-      .addra(data_addr[9:0]),  // input wire [9 : 0] addra
-      .dina(DM_data_iM),    // input wire [31 : 0] dina
-      .douta(DM_data_oDM)  // output wire [31 : 0] douta
-    );
-
     // 分频器
-    cpu_clk_en u_cpu_clk_en(
+    cpu_cpu_en u_cpu_cpu_en(
         .clk(clk),
         .rst(rst),
         .T_clk(T_clk),
-        .clk_en(clk_en)
+        .cpu_en(cpu_en)
     );
 
 endmodule

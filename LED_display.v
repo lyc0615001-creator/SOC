@@ -33,14 +33,14 @@ module LED_display(
     wire  [3:0] seg10, seg1;
     reg [6:0] reg_display_data;
 
-    wire led_clk_en;
+    wire led_cpu_en;
     reg [1:0] display_type; // 00 normal 01 ¼ÓÔØ 10 ¿Õ°×
 
-    cpu_clk_en u_cpu_clk_en(
+    cpu_cpu_en u_cpu_cpu_en(
         .clk(clk),
         .rst(rst),
         .T_clk(T_clk >> 3),
-        .clk_en(led_clk_en)
+        .cpu_en(led_cpu_en)
     );
 
     reg [2:0] sw_phase;
@@ -53,7 +53,7 @@ module LED_display(
             sw_phase <= 3'b0;
             display_type <= 2'b0; // Ä¬ÈÏdata
         end else begin
-            if(led_clk_en) begin
+            if(led_cpu_en) begin
                 if (display_status == 1'b0 | display_status === 1'bx) begin
                     sw_phase <= 3'b0;
                     display_type <= 2'b0;
@@ -74,7 +74,7 @@ module LED_display(
             reg_display_data <= 32'b0;
         end
         else begin
-            if (led_clk_en) begin
+            if (led_cpu_en) begin
                 reg_display_data <= display_data[6:0];
             end
         end

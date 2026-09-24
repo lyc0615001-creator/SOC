@@ -22,7 +22,7 @@
 module flopenrc #(parameter WIDTH = 32)(
         input clk,
         input rst,
-        input clk_en,
+        input cpu_en,
         input en,
         input clear,
         input [WIDTH-1:0] din,
@@ -32,9 +32,9 @@ module flopenrc #(parameter WIDTH = 32)(
     always @(posedge clk or negedge rst) begin
         if (!rst) begin
             dout <= {WIDTH{1'b0}};
-        end else if (clk_en && clear) begin
+        end else if (cpu_en && clear) begin
                 dout <= {WIDTH{1'b0}};
-        end else if (clk_en && en) begin
+        end else if (cpu_en && en) begin
                 dout <= din;
         end
     end

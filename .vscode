@@ -1,0 +1,17 @@
+{
+    "files.watcherExclude": {
+        "**/*.sim/**": true,
+        "**/*.runs/**": true,
+        "**/*.cache/**": true,
+        "**/*.gen/**": true,
+        "**/ip_user_files/**": true
+    },
+
+    "search.exclude": {
+        "**/*.sim/**": true,
+        "**/*.runs/**": true,
+        "**/*.cache/**": true,
+        "**/*.gen/**": true,
+        "**/ip_user_files/**": true
+    }
+}

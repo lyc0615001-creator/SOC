@@ -23,7 +23,7 @@
 module Valid_pipeline(
         input clk,
         input rst,
-        input clk_en,
+        input cpu_en,
         input stall,
         input redirectD,
         output [5:0] valid_signs
@@ -49,7 +49,7 @@ module Valid_pipeline(
     always @(posedge clk or negedge rst) begin
         if (!rst) begin
             valid_reg <= 6'b0;
-        end else if (clk_en) begin
+        end else if (cpu_en) begin
             if (stall) begin
                 valid_reg <= {
                     valid_reg[V_IM],

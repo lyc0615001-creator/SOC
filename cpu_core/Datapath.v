@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 module Datapath (
     input clk, rst,
-    input clk_en,
+    input cpu_en,
     input [31:0] instrIM,
     input [31:0] DM_data_oDM,
     input reg_write_enE, reg_write_enM, reg_write_enDM,
@@ -10,7 +10,7 @@ module Datapath (
     input branchD, jumpD,
     input used_rsD, used_rtD,
     input [2:0] alu_controlE,
-    output [31:0] pc_oF, alu_resultM, DM_data_iM, pc_oM, instrD,
+    output [31:0] pc_oF, alu_resultM, DM_data_iM, instrD,
     output stall, validM
 );
 
@@ -68,7 +68,7 @@ module Datapath (
     // 指令执行模块
 
     // pc 一级延迟
-    pc u_pc(.clk(clk), .rst(rst), .clk_en(clk_en), .en(~stall), .pc_i(pc_iD), .pc_o(pc_oF));
+    pc u_pc(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~stall), .pc_i(pc_iD), .pc_o(pc_oF));
     
     adder u_adder_plus4(
         .add_i1(pc_oF), 
@@ -78,19 +78,19 @@ module Datapath (
     
     // F -> IM 指令存储器延迟同步
     // 同步变量 pc_plus4F
-    flopenrc #(32) u_flopenrc_pc_plus4IM(.clk(clk), .rst(rst), .clk_en(clk_en), .en(~stall), .clear(1'b0), .din(pc_plus4F), .dout(pc_plus4IM));
+    flopenrc #(32) u_flopenrc_pc_plus4IM(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~stall), .clear(1'b0), .din(pc_plus4F), .dout(pc_plus4IM));
 
     // IM -> D 流水线触发器
     // 延迟变量 instrIM pc_plus4IM
-    flopenrc #(32) u_flopenrc_instrD(.clk(clk), .rst(rst), .clk_en(clk_en), .en(~stall), .clear(1'b0), .din(instrIM), .dout(instrD));
-    flopenrc #(32) u_flopenrc_pc_plus4D(.clk(clk), .rst(rst), .clk_en(clk_en), .en(~stall), .clear(1'b0), .din(pc_plus4IM), .dout(pc_plus4D));
+    flopenrc #(32) u_flopenrc_instrD(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~stall), .clear(1'b0), .din(instrIM), .dout(instrD));
+    flopenrc #(32) u_flopenrc_pc_plus4D(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~stall), .clear(1'b0), .din(pc_plus4IM), .dout(pc_plus4D));
 
     assign rf_write_enW = validW && reg_write_enW;
     Regfile u_Regfile(
         .clk(clk), 
         .rst(rst),
         .w_en(rf_write_enW),
-        .clk_en(clk_en),
+        .cpu_en(cpu_en),
         .RF_address1(rsD),
         .RF_address2(rtD), 
         .RF_address3(RF_address3W),
@@ -102,37 +102,37 @@ module Datapath (
 
     // D -> E 流水线触发器
     // 延迟变量 RF_data_o1_mux4D RF_data_o2_mux4D sign_extD rsD rtD rdD
-    flopenrc #(32) u_flopenrc_RF_data_o1_mux4E(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(RF_data_o1_mux4D), .dout(RF_data_o1_mux4E));
-    flopenrc #(32) u_flopenrc_RF_data_o2_mux4E(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(RF_data_o2_mux4D), .dout(RF_data_o2_mux4E));
-    flopenrc #(32) u_flopenrc_sign_extE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(sign_extD), .dout(sign_extE));
+    flopenrc #(32) u_flopenrc_RF_data_o1_mux4E(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(RF_data_o1_mux4D), .dout(RF_data_o1_mux4E));
+    flopenrc #(32) u_flopenrc_RF_data_o2_mux4E(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(RF_data_o2_mux4D), .dout(RF_data_o2_mux4E));
+    flopenrc #(32) u_flopenrc_sign_extE(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(sign_extD), .dout(sign_extE));
 
-    flopenrc #(5) u_flopenrc_rsE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(rsD), .dout(rsE));
-    flopenrc #(5) u_flopenrc_rtE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(rtD), .dout(rtE));
-    flopenrc #(5) u_flopenrc_rdE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(rdD), .dout(rdE));
+    flopenrc #(5) u_flopenrc_rsE(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(rsD), .dout(rsE));
+    flopenrc #(5) u_flopenrc_rtE(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(rtD), .dout(rtE));
+    flopenrc #(5) u_flopenrc_rdE(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(rdD), .dout(rdE));
 
     // E -> M 流水线触发器  
     // 延迟变量 alu_resultE DM_data_iE RF_address3E
-    flopenrc #(32) u_flopenrc_alu_resultM(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(alu_resultE), .dout(alu_resultM));
-    flopenrc #(32) u_flopenrc_DM_data_iM(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(DM_data_iE), .dout(DM_data_iM));
-    flopenrc #(5) u_flopenrc_RF_address3M(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(RF_address3E), .dout(RF_address3M));
+    flopenrc #(32) u_flopenrc_alu_resultM(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(alu_resultE), .dout(alu_resultM));
+    flopenrc #(32) u_flopenrc_DM_data_iM(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(DM_data_iE), .dout(DM_data_iM));
+    flopenrc #(5) u_flopenrc_RF_address3M(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(RF_address3E), .dout(RF_address3M));
 
 
     // M -> DM 数据存储器延迟同步
     // 延迟变量 alu_resultM RF_address3M 
-    flopenrc #(32) u_flopenrc_alu_resultDM(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(alu_resultM), .dout(alu_resultDM));
-    flopenrc #(5) u_flopenrc_RF_address3DM(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(RF_address3M), .dout(RF_address3DM));
+    flopenrc #(32) u_flopenrc_alu_resultDM(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(alu_resultM), .dout(alu_resultDM));
+    flopenrc #(5) u_flopenrc_RF_address3DM(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(RF_address3M), .dout(RF_address3DM));
 
     // DM -> W 流水线触发器
     // 延迟变量 RF_address3DM RF_data_iDM
-    flopenrc #(5) u_flopenrc_RF_address3W(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(RF_address3DM), .dout(RF_address3W));
-    flopenrc #(32) u_flopenrc_RF_data_iW(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(RF_data_iDM), .dout(RF_data_iW));
+    flopenrc #(5) u_flopenrc_RF_address3W(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(RF_address3DM), .dout(RF_address3W));
+    flopenrc #(32) u_flopenrc_RF_data_iW(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(RF_data_iDM), .dout(RF_data_iW));
 
     // LED展示 pc F->M
-    wire [31:0] pc_oD, pc_oE, pc_oIM;
-    flopenrc #(32) u_flopenrc_pc_oIM(.clk(clk), .rst(rst), .clk_en(clk_en), .en(~stall), .clear(1'b0), .din(pc_oF), .dout(pc_oIM));
-    flopenrc #(32) u_flopenrc_pc_oD(.clk(clk), .rst(rst), .clk_en(clk_en), .en(~stall), .clear(1'b0), .din(pc_oIM), .dout(pc_oD));
-    flopenrc #(32) u_flopenrc_pc_oE(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(pc_oD), .dout(pc_oE));
-    flopenrc #(32) u_flopenrc_pc_oM(.clk(clk), .rst(rst), .clk_en(clk_en), .en(1'b1), .clear(1'b0), .din(pc_oE), .dout(pc_oM));
+    // wire [31:0] pc_oD, pc_oE, pc_oIM;
+    // flopenrc #(32) u_flopenrc_pc_oIM(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~stall), .clear(1'b0), .din(pc_oF), .dout(pc_oIM));
+    // flopenrc #(32) u_flopenrc_pc_oD(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~stall), .clear(1'b0), .din(pc_oIM), .dout(pc_oD));
+    // flopenrc #(32) u_flopenrc_pc_oE(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(pc_oD), .dout(pc_oE));
+    // flopenrc #(32) u_flopenrc_pc_oM(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(pc_oE), .dout(pc_oM));
 
 
     // ====R====
@@ -271,7 +271,7 @@ module Datapath (
     Valid_pipeline u_Valid_pipeline(
         .clk(clk),
         .rst(rst),
-        .clk_en(clk_en),
+        .cpu_en(cpu_en),
         .stall(stall),
         .redirectD(redirectD),
         .valid_signs(valid_signs)
