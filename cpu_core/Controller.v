@@ -8,9 +8,10 @@ module Controller (
     output reg_data_muxE, reg_data_muxM,
     output branchD, jumpD,
     output used_rsD, used_rtD,
+    output imm_zero_extD, branch_neD,
     output [2:0] alu_controlE
 );
-    wire [9:0] sign;
+    wire [11:0] sign;
 
     wire mem_read_enD, mem_read_enE;
     wire reg_write_enD;
@@ -28,7 +29,8 @@ module Controller (
     );
 
     // 判断是否用到了rs 后续可做优化
-    assign {reg_write_enD, alu_src_muxD,  reg_dst_muxD, reg_data_muxD, mem_write_enD, branchD, jumpD, used_rsD, used_rtD, mem_read_enD} = sign;
+    assign {reg_write_enD, alu_src_muxD,  reg_dst_muxD, reg_data_muxD, mem_write_enD, branchD, jumpD, used_rsD, used_rtD, mem_read_enD,
+            imm_zero_extD, branch_neD} = sign;
 
     // mem_read_en
     flopenrc #(1) u_flopenrc_mem_read_enE(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(mem_read_enD), .dout(mem_read_enE));
@@ -66,31 +68,40 @@ endmodule
 module main_desc (
     input [5:0] op_code,
     input [5:0] funct,
-    output [9:0] sign,
+    output [11:0] sign,
     output [2:0] alu_control
 );
-    wire [1:0] aluop;
-    wire [11:0] signs;
+    wire [2:0] aluop;
+    wire [14:0] signs;
 
-    assign signs = (op_code == 6'b000000) ? 12'b101010000110 : // R-Type
-                   (op_code == 6'b100011) ? 12'b001101000101 : // lw
-                   (op_code == 6'b101011) ? 12'b000100100110 : // sw
-                   (op_code == 6'b000100) ? 12'b010100010110 : // beq
-                   (op_code == 6'b000010) ? 12'b000000001000 : // jump
-                   (op_code == 6'b001000) ? 12'b001100000100 : // addi
-                   12'b00000000000;
+    assign signs = (op_code == 6'b000000) ? 15'b111_10_1000_0110_00 : // R-Type
+                   (op_code == 6'b100011) ? 15'b000_11_0100_0101_00 : // lw
+                   (op_code == 6'b101011) ? 15'b000_01_0010_0110_00 : // sw
+                   (op_code == 6'b000100) ? 15'b001_00_0001_0110_00 : // beq
+                   (op_code == 6'b000010) ? 15'b001_00_0000_1000_00 : // jump
+                   (op_code == 6'b001000) ? 15'b000_11_0000_0100_00 : // addi
+                   (op_code == 6'b000101) ? 15'b001_00_0001_0110_01 : // bne
+                   (op_code == 6'b001101) ? 15'b011_11_0000_0100_10 : // ori
+                   (op_code == 6'b001100) ? 15'b010_11_0000_0100_10 : // andi
+                   (op_code == 6'b001110) ? 15'b100_11_0000_0100_10 : // xori
+                   (op_code == 6'b001111) ? 15'b110_11_0000_0010_00 : // lui
+                   15'b00000000000000;
 
-    assign aluop = signs[11:10];
-    assign sign = signs[9:0];
+    assign aluop = signs[14:12];
+    assign sign = signs[11:0];
 
-    assign alu_control = (aluop == 2'b00) ? 3'b010 : // lw/sw -- add
-                         (aluop == 2'b01) ? 3'b110 : // beq/jump -- sub
-                         (aluop == 2'b10) ? ((funct == 6'b100000) ? 3'b010 : // R-add
-                                             (funct == 6'b100010) ? 3'b110 : // R-sub
-                                             (funct == 6'b100100) ? 3'b000 : // R-and
-                                             (funct == 6'b100101) ? 3'b001 : // R-or
-                                             (funct == 6'b101010) ? 3'b111 : // R-less-than
-                                            3'b010
-                         ) : 3'b010;
+    assign alu_control = (aluop == 3'b000) ? 3'b000 : // lw/sw/addi -- add
+                         (aluop == 3'b001) ? 3'b001 : // beq/jump -- sub
+                         (aluop == 3'b010) ? 3'b010 : // andi -- and
+                         (aluop == 3'b011) ? 3'b011 : // ori -- or
+                         (aluop == 3'b100) ? 3'b100 : // xori -- xor
+                         (aluop == 3'b110) ? 3'b110 : // xori -- xor
+                         (aluop == 3'b111) ? ((funct == 6'b100000) ? 3'b000 : // R-add
+                                             (funct == 6'b100010) ? 3'b001 : // R-sub
+                                             (funct == 6'b100100) ? 3'b010 : // R-and
+                                             (funct == 6'b100101) ? 3'b011 : // R-or
+                                             (funct == 6'b101010) ? 3'b101 : // R-less-than
+                                            3'b000
+                         ) : 3'b000;
 
 endmodule

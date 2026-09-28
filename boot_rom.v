@@ -31,7 +31,7 @@ module boot_rom #(parameter ADDR_WIDTH = 10)(
 
 
     initial begin
-        $readmemh("lab6_boot.mem", rom);
+        $readmemh("lab7_1.mem", rom);
     end
 
     always @(posedge clk) begin

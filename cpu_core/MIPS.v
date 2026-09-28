@@ -14,6 +14,7 @@ module MIPS (
     wire reg_data_muxE, reg_data_muxM;
     wire branchD, jumpD;
     wire used_rsD, used_rtD;
+    wire imm_zero_extD, branch_neD;
     wire [2:0] alu_controlE;
     wire [31:0] instrD;
     wire validM, mem_write_enM, mem_read_enM, stall;
@@ -37,6 +38,8 @@ module MIPS (
         .jumpD(jumpD),
         .used_rsD(used_rsD),
         .used_rtD(used_rtD),
+        .imm_zero_extD(imm_zero_extD),
+        .branch_neD(branch_neD),
         .alu_controlE(alu_controlE),
         // out
         .pc_oF(pc_oF),
@@ -75,6 +78,8 @@ module MIPS (
         .jumpD(jumpD),
         .used_rsD(used_rsD),
         .used_rtD(used_rtD),
+        .imm_zero_extD(imm_zero_extD),
+        .branch_neD(branch_neD),
         .alu_controlE(alu_controlE)
     );
     

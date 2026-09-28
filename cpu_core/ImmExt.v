@@ -20,10 +20,11 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module signext(
+module ImmExt(
         input [15:0] ext_i,
+        input imm_zero_sel,
         output [31:0] ext_o
     );
-    assign ext_o = {{16{ext_i[15]}}, ext_i};
+    assign ext_o = imm_zero_sel ? {16'b0, ext_i} : {{16{ext_i[15]}}, ext_i};
 
 endmodule

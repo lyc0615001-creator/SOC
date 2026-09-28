@@ -27,11 +27,13 @@ module alu(
     output [31:0] alu_data_o
     );
 
-    assign alu_data_o = (alu_control == 3'b010) ? (alu_data_i1 + alu_data_i2) :
-                        (alu_control == 3'b110) ? (alu_data_i1 - alu_data_i2) :
-                        (alu_control == 3'b000) ? (alu_data_i1 & alu_data_i2) :
-                        (alu_control == 3'b001) ? (alu_data_i1 | alu_data_i2) :
-                        (alu_control == 3'b111) ? ($signed(alu_data_i1) < $signed(alu_data_i2)) :
+    assign alu_data_o = (alu_control == 3'b000) ? (alu_data_i1 + alu_data_i2) :
+                        (alu_control == 3'b001) ? (alu_data_i1 - alu_data_i2) :
+                        (alu_control == 3'b010) ? (alu_data_i1 & alu_data_i2) :
+                        (alu_control == 3'b011) ? (alu_data_i1 | alu_data_i2) :
+                        (alu_control == 3'b100) ? (alu_data_i1 ^ alu_data_i2) :
+                        (alu_control == 3'b101) ? ($signed(alu_data_i1) < $signed(alu_data_i2)) :
+                        (alu_control == 3'b110) ? {alu_data_i2[15:0], 16'b0} :
                         32'd0;
 
 endmodule

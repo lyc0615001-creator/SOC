@@ -9,6 +9,7 @@ module Datapath (
     input reg_data_muxE, reg_data_muxM,
     input branchD, jumpD,
     input used_rsD, used_rtD,
+    input imm_zero_extD, branch_neD,
     input [2:0] alu_controlE,
     output [31:0] pc_oF, alu_resultM, DM_data_iM, instrD,
     output stall, validM
@@ -25,12 +26,12 @@ module Datapath (
     wire [4:0] rsD, rtD, rdD;
     wire [15:0] lw_offsetD;
     wire [31:0] pc_plus4D, pc_branchD, pc_jumpD, pc_nextD, pc_iD;
-    wire [31:0] sign_extD, sign_ext_sl2D, jump_sl2D;
+    wire [31:0] imm_extD, imm_ext_sl2D, jump_sl2D;
     wire [31:0] RF_data_o1D, RF_data_o2D;
 
     // E阶段变量
     wire [4:0] RF_address3E, rsE, rtE, rdE;
-    wire [31:0] sign_extE;
+    wire [31:0] imm_extE;
     wire [31:0] DM_data_iE, alu_src_i2E, alu_resultE;
     wire [31:0] RF_data_o1_mux4E, RF_data_o2_mux4E;
 
@@ -101,10 +102,10 @@ module Datapath (
 
 
     // D -> E 流水线触发器
-    // 延迟变量 RF_data_o1_mux4D RF_data_o2_mux4D sign_extD rsD rtD rdD
+    // 延迟变量 RF_data_o1_mux4D RF_data_o2_mux4D imm_extD rsD rtD rdD
     flopenrc #(32) u_flopenrc_RF_data_o1_mux4E(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(RF_data_o1_mux4D), .dout(RF_data_o1_mux4E));
     flopenrc #(32) u_flopenrc_RF_data_o2_mux4E(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(RF_data_o2_mux4D), .dout(RF_data_o2_mux4E));
-    flopenrc #(32) u_flopenrc_sign_extE(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(sign_extD), .dout(sign_extE));
+    flopenrc #(32) u_flopenrc_sign_extE(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(imm_extD), .dout(imm_extE));
 
     flopenrc #(5) u_flopenrc_rsE(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(rsD), .dout(rsE));
     flopenrc #(5) u_flopenrc_rtE(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(rtD), .dout(rtE));
@@ -144,11 +145,11 @@ module Datapath (
         );
 
     // lw sw
-    signext u_signext(.ext_i(lw_offsetD), .ext_o(sign_extD));
+    ImmExt u_ImmExt(.ext_i(lw_offsetD), .imm_zero_sel(imm_zero_extD), .ext_o(imm_extD));
 
     // alu_src_muxE
     mux2 #(32) u_mux2_alu_data_i2 (
-        .data_i1(sign_extE), 
+        .data_i1(imm_extE), 
         .data_i2(alu_src_i0E), 
         .sel(alu_src_muxE), 
         .data_o(alu_src_i2E)
@@ -170,18 +171,18 @@ module Datapath (
         .data_o(RF_address3E)
         );
 
-    // ====beq====
+    // ====beq & bne====
     assign zeroD = (RF_data_o1_mux4D == RF_data_o2_mux4D);
-    assign branch_selD = validD && !stall && zeroD && branchD;
+    assign branch_selD = validD && !stall && branchD && (zeroD ^ branch_neD);
 
 
     sl2 u_sl2_branch(
-        .sl2_i(sign_extD),
-        .sl2_o(sign_ext_sl2D)
+        .sl2_i(imm_extD),
+        .sl2_o(imm_ext_sl2D)
         );
 
     adder u_adder_branch(
-        .add_i1(sign_ext_sl2D), 
+        .add_i1(imm_ext_sl2D), 
         .add_i2(pc_plus4D), 
         .add_o(pc_branchD)
         );
