@@ -23,11 +23,11 @@
 module gpio_mmio(
         input               clk,
         input               rst,
-        input               gpio_reM,
-        input               gpio_weM,
-        input       [7:0]   gpio_addrM,
-        input       [31:0]  gpio_wdataM,
-        output reg  [31:0]  gpio_rdataDM,
+        input               gpio_re,
+        input               gpio_we,
+        input       [7:0]   gpio_addr,
+        input       [31:0]  gpio_wdata,
+        output reg  [31:0]  gpio_rdata,
         output      [3:0]   led
     );
 
@@ -35,13 +35,13 @@ module gpio_mmio(
 
     always @(posedge clk) begin
         if (!rst) begin
-            gpio_rdataDM <= 32'b0;
+            gpio_rdata <= 32'b0;
         end else begin
-            if (gpio_reM && gpio_addrM == 8'b0) begin
-                gpio_rdataDM <= gpio_data;
+            if (gpio_re && gpio_addr == 8'b0) begin
+                gpio_rdata <= gpio_data;
             end
-            if (gpio_weM && gpio_addrM == 8'b0) begin
-                gpio_data <= gpio_wdataM;
+            if (gpio_we && gpio_addr == 8'b0) begin
+                gpio_data <= gpio_wdata;
             end
         end
     end

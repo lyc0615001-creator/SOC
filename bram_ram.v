@@ -22,21 +22,21 @@
 
 module bram_ram #(parameter ADDR_WIDTH = 10)(
         input             clk,
-        input             ram_reM,
-        input             ram_weM,
-        input     [31:0]  ram_addrM,
-        input     [31:0]  ram_wdataM,
-        output  reg  [31:0]  ram_rdataDM
+        input             ram_re,
+        input             ram_we,
+        input     [31:0]  ram_addr,
+        input     [31:0]  ram_wdata,
+        output  reg  [31:0]  ram_rdata
     );
 
     reg [31:0] ram [0: ((1 << ADDR_WIDTH) - 1)];
 
     always @(posedge clk) begin
-        if (ram_reM) begin
-            ram_rdataDM <= ram[ram_addrM];
+        if (ram_re) begin
+            ram_rdata <= ram[ram_addr];
         end
-        if (ram_weM) begin
-            ram[ram_addrM] <= ram_wdataM;
+        if (ram_we) begin
+            ram[ram_addr] <= ram_wdata;
         end
     end
 endmodule

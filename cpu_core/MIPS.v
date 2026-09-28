@@ -3,7 +3,7 @@ module MIPS (
     input cpu_en,
     input [31:0] instrIM,
     input [31:0] DM_data_oDM,
-    output mem_write_en_effM, mem_read_enM,
+    output mem_write_en_effM, mem_read_en_effM,
     output rom_en,
     output [31:0] pc_oF,
     output [31:0] alu_resultM,
@@ -16,7 +16,7 @@ module MIPS (
     wire used_rsD, used_rtD;
     wire [2:0] alu_controlE;
     wire [31:0] instrD;
-    wire validM, mem_write_enM;
+    wire validM, mem_write_enM, mem_read_enM, stall;
 
     Datapath u_Datapath(
         .clk(clk), 
@@ -47,7 +47,9 @@ module MIPS (
         .validM(validM)
     );
 
+    // 让valid 只生效在处理器内部
     assign mem_write_en_effM = validM && mem_write_enM;
+    assign mem_read_en_effM = validM && mem_read_enM;
     assign rom_en = cpu_en && ~stall;
 
     Controller u_Controller(

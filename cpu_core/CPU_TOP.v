@@ -13,16 +13,15 @@ module CPU_TOP (
     input [31:0] instrIM //ªÒµ√÷∏¡Ó
   );
 
+    localparam T_clk = 1;
+    wire mem_read_en_effM, mem_write_en_effM;
+    wire [31:0] alu_resultM, DM_data_iM, DM_data_oDM;
+
     assign DM_data_oDM = cpu_rdataDM; 
-    assign mem_readM = mem_read_enM;
+    assign mem_readM = mem_read_en_effM;
     assign mem_writeM = mem_write_en_effM;
     assign cpu_addrM = alu_resultM;
     assign cpu_wdataM = DM_data_iM;
-
-
-    localparam T_clk = 1;
-    wire mem_read_enM, mem_write_en_effM;
-    wire [31:0] instrIM, alu_resultM, DM_data_iM, DM_data_oDM;
 
     MIPS u_mips(
       .clk(clk),
@@ -32,7 +31,7 @@ module CPU_TOP (
       .DM_data_oDM(DM_data_oDM),
       // out
       .mem_write_en_effM(mem_write_en_effM),
-      .mem_read_enM(mem_read_enM),
+      .mem_read_en_effM(mem_read_en_effM),
       .rom_en(rom_en),
       .pc_oF(pc_oF),
       .alu_resultM(alu_resultM),

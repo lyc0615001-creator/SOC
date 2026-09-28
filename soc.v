@@ -23,33 +23,44 @@
 module soc(
         input              clk,
         input              rst,
-        output    [3:0]    led
+        output    [3:0]    led,
         
+        output             tx,
+        input              rx
     );
         //================ CPU master =================
-        wire              mem_readM;
-        wire              mem_writeM;
-        wire      [31:0]  cpu_addrM;
-        wire      [31:0]  cpu_wdataM;
-        wire      [31:0]  cpu_rdataDM;
+        wire              mem_read;
+        wire              mem_write;
+        wire      [31:0]  cpu_addr;
+        wire      [31:0]  cpu_wdata;
+        wire      [31:0]  cpu_rdata;
 
         wire              rom_en;
         wire      [31:0]  pc_oF;
         wire      [31:0]  instrIM;
 
+        wire              cpu_en;
+
         //================ BRAM slave =================
-        wire              ram_reM;
-        wire              ram_weM;
-        wire      [31:0]  ram_addrM;
-        wire      [31:0]  ram_wdataM;
-        wire      [31:0]  ram_rdataDM;
+        wire              ram_re;
+        wire              ram_we;
+        wire      [31:0]  ram_addr;
+        wire      [31:0]  ram_wdata;
+        wire      [31:0]  ram_rdata;
 
         //================ GPIO slave =================
-        wire              gpio_reM;
-        wire              gpio_weM;
-        wire      [7:0]   gpio_addrM;
-        wire      [31:0]  gpio_wdataM;
-        wire      [31:0]  gpio_rdataDM;
+        wire              gpio_re;
+        wire              gpio_we;
+        wire      [7:0]   gpio_addr;
+        wire      [31:0]  gpio_wdata;
+        wire      [31:0]  gpio_rdata;
+
+        //================ UART slave =================
+        wire              uart_re;
+        wire              uart_we;
+        wire      [7:0]   uart_addr;
+        wire      [31:0]  uart_wdata;
+        wire      [31:0]  uart_rdata;
 
 
         //==================================================
@@ -58,12 +69,12 @@ module soc(
         CPU_TOP u_CPU_TOP(
             .clk(clk),
             .rst(rst),
-            .cpu_rdataDM(cpu_rdataDM), // 获得读数据
+            .cpu_rdataDM(cpu_rdata), // 获得读数据
             .cpu_en(cpu_en), // 分频信号
-            .mem_readM(mem_readM), // 读使能
-            .mem_writeM(mem_writeM), // 写使能
-            .cpu_addrM(cpu_addrM), // 读写地址
-            .cpu_wdataM(cpu_wdataM), // 写数据
+            .mem_readM(mem_read), // 读使能
+            .mem_writeM(mem_write), // 写使能
+            .cpu_addrM(cpu_addr), // 读写地址
+            .cpu_wdataM(cpu_wdata), // 写数据
             // instr
             .rom_en(rom_en),
             .pc_oF(pc_oF),
@@ -90,25 +101,32 @@ module soc(
             .cpu_en(cpu_en),
 
             //================ CPU master =================
-            .mem_readM(mem_readM),
-            .mem_writeM(mem_writeM),
-            .cpu_addrM(cpu_addrM),
-            .cpu_wdataM(cpu_wdataM),
-            .cpu_rdataDM(cpu_rdataDM),
+            .mem_read(mem_read),
+            .mem_write(mem_write),
+            .cpu_addr(cpu_addr),
+            .cpu_wdata(cpu_wdata),
+            .cpu_rdata(cpu_rdata),
 
             //================ BRAM slave =================
-            .ram_reM(ram_reM),
-            .ram_weM(ram_weM),
-            .ram_addrM(ram_addrM),
-            .ram_wdataM(ram_wdataM),
-            .ram_rdataDM(ram_rdataDM),
+            .ram_re(ram_re),
+            .ram_we(ram_we),
+            .ram_addr(ram_addr),
+            .ram_wdata(ram_wdata),
+            .ram_rdata(ram_rdata),
 
             //================ GPIO slave =================
-            .gpio_reM(gpio_reM),
-            .gpio_weM(gpio_weM),
-            .gpio_addrM(gpio_addrM),
-            .gpio_wdataM(gpio_wdataM),
-            .gpio_rdataDM(gpio_rdataDM)
+            .gpio_re(gpio_re),
+            .gpio_we(gpio_we),
+            .gpio_addr(gpio_addr),
+            .gpio_wdata(gpio_wdata),
+            .gpio_rdata(gpio_rdata),
+
+            //================ UART slave =================
+            .uart_re(uart_re),
+            .uart_we(uart_we),
+            .uart_addr(uart_addr),
+            .uart_wdata(uart_wdata),
+            .uart_rdata(uart_rdata)
         );
 
 
@@ -117,11 +135,11 @@ module soc(
         //==================================================
         bram_ram #(15) u_bram_ram(
             .clk(clk),
-            .ram_reM(ram_reM),
-            .ram_weM(ram_weM),
-            .ram_addrM(ram_addrM),
-            .ram_wdataM(ram_wdataM),
-            .ram_rdataDM(ram_rdataDM)
+            .ram_re(ram_re),
+            .ram_we(ram_we),
+            .ram_addr(ram_addr),
+            .ram_wdata(ram_wdata),
+            .ram_rdata(ram_rdata)
         );
 
         //==================================================
@@ -130,12 +148,32 @@ module soc(
         gpio_mmio u_gpio_mmio(
             .clk(clk),
             .rst(rst),
-            .gpio_reM(gpio_reM),
-            .gpio_weM(gpio_weM),
-            .gpio_addrM(gpio_addrM),
-            .gpio_wdataM(gpio_wdataM),
-            .gpio_rdataDM(gpio_rdataDM),
+            .gpio_re(gpio_re),
+            .gpio_we(gpio_we),
+            .gpio_addr(gpio_addr),
+            .gpio_wdata(gpio_wdata),
+            .gpio_rdata(gpio_rdata),
             .led(led)
         );
+
+
+        //==================================================
+        // UART instance
+        //==================================================
+        uart u_uart(
+        .clk(clk),
+        .rst(rst),
+
+        // bus interface
+        .uart_re(uart_re),
+        .uart_we(uart_we),
+        .uart_addr(uart_addr),
+        .uart_wdata(uart_wdata),
+        .uart_rdata(uart_rdata),
+
+        // physical pins
+        .rx(rx),
+        .tx(tx)
+    );
     
 endmodule

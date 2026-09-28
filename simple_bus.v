@@ -28,25 +28,32 @@ module simple_bus(
         input              cpu_en,
 
         //================ CPU master =================
-        input              mem_readM,
-        input              mem_writeM,
-        input      [31:0]  cpu_addrM,
-        input      [31:0]  cpu_wdataM,
-        output reg [31:0]  cpu_rdataDM,
+        input              mem_read,
+        input              mem_write,
+        input      [31:0]  cpu_addr,
+        input      [31:0]  cpu_wdata,
+        output reg [31:0]  cpu_rdata,
 
         //================ BRAM slave =================
-        output             ram_reM,
-        output             ram_weM,
-        output     [31:0]  ram_addrM,
-        output     [31:0]  ram_wdataM,
-        input      [31:0]  ram_rdataDM,
+        output             ram_re,
+        output             ram_we,
+        output     [31:0]  ram_addr,
+        output     [31:0]  ram_wdata,
+        input      [31:0]  ram_rdata,
 
         //================ GPIO slave =================
-        output             gpio_reM,
-        output             gpio_weM,
-        output     [7:0]   gpio_addrM,
-        output     [31:0]  gpio_wdataM,
-        input      [31:0]  gpio_rdataDM
+        output             gpio_re,
+        output             gpio_we,
+        output     [7:0]   gpio_addr,
+        output     [31:0]  gpio_wdata,
+        input      [31:0]  gpio_rdata,
+
+        //================ UART slave =================
+        output             uart_re,
+        output             uart_we,
+        output     [7:0]   uart_addr,
+        output     [31:0]  uart_wdata,
+        input      [31:0]  uart_rdata
     );
 
     //==================================================
@@ -54,61 +61,93 @@ module simple_bus(
     //==================================================
 
     // 0x0001_0000 ~ 0x0001_FFFF
-    wire sel_ramM;
+    wire sel_ram;
 
     // 正式地址：0x1000_0000 ~ 0x1000_00FF
-    wire sel_gpio_mainM;
+    wire sel_gpio_main;
 
     // Lab5 临时 alias：0x0000_4000 ~ 0x0000_40FF
-    wire sel_gpio_aliasM;
+    wire sel_gpio_alias;
 
-    wire sel_gpioM;
+    wire sel_gpio;
 
-    assign sel_ramM = (cpu_addrM[31:16] == 16'h0001);
+    // 正式地址：0x1000_1000 ~ 0x1000_10FF
+    wire sel_uart_main;
 
-    assign sel_gpio_mainM = (cpu_addrM[31:8] == 24'h100000);
+    // lab6 临时 alias：0x0000_4100 ~ 0x0000_41FF
+    wire sel_uart_alias;
 
-    assign sel_gpio_aliasM = (cpu_addrM[31:8] == 24'h000040);
+    wire sel_uart;
     
-    assign sel_gpioM = sel_gpio_mainM | sel_gpio_aliasM;
+    
+    // ram
+    assign sel_ram = (cpu_addr[31:16] == 16'h0001);
+
+    // gpio
+    assign sel_gpio_main = (cpu_addr[31:8] == 24'h100000);
+
+    assign sel_gpio_alias = (cpu_addr[31:8] == 24'h000040);
+    
+    assign sel_gpio = sel_gpio_main | sel_gpio_alias;
+
+    
+    // uart
+    assign sel_uart_main = (cpu_addr[31:8] == 24'h100010);
+
+    assign sel_uart_alias = (cpu_addr[31:8] == 24'h000041);
+
+    assign sel_uart = sel_uart_main | sel_uart_alias;
 
 
     //==================================================
     // Write / Read request distribution
     //==================================================
 
-    assign ram_reM = cpu_en && sel_ramM && mem_readM ;
+    // ram
+    assign ram_re = cpu_en && sel_ram && mem_read ;
 
-    assign ram_weM = cpu_en && sel_ramM && mem_writeM;
+    assign ram_we = cpu_en && sel_ram && mem_write;
 
-    assign ram_addrM = (cpu_addrM - 32'h0001_0000) >> 2;
+    assign ram_addr = (cpu_addr - 32'h0001_0000) >> 2;
 
-    assign ram_wdataM = cpu_wdataM;
+    assign ram_wdata = cpu_wdata;
 
-    assign gpio_reM = cpu_en && sel_gpioM && mem_readM;
+    // gpio
+    assign gpio_re = cpu_en && sel_gpio && mem_read;
 
-    assign gpio_weM = cpu_en && sel_gpioM && mem_writeM;
+    assign gpio_we = cpu_en && sel_gpio && mem_write;
 
-    assign gpio_addrM = cpu_addrM[7:0] >> 2;
+    assign gpio_addr = cpu_addr[7:0] >> 2;
 
-    assign gpio_wdataM = cpu_wdataM;
+    assign gpio_wdata = cpu_wdata;
 
+    // uart
+    assign uart_re = cpu_en && sel_uart && mem_read;
+
+    assign uart_we = cpu_en && sel_uart && mem_write;
+
+    assign uart_addr = cpu_addr[7:0];
+
+    assign uart_wdata = cpu_wdata;
 
     //==================================================
     // Read source pipeline: M -> DM
     //==================================================
 
-    reg sel_ramDM;
-    reg sel_gpioDM;
+    reg sel_ram_next;
+    reg sel_gpio_next;
+    reg sel_uart_next;
 
     always @(posedge clk or negedge rst) begin
         if (!rst) begin
-            sel_ramDM  <= 1'b0;
-            sel_gpioDM <= 1'b0;
+            sel_ram_next  <= 1'b0;
+            sel_gpio_next <= 1'b0;
+            sel_uart_next <= 1'b0;
         end
         else if (cpu_en) begin
-            sel_ramDM  <= sel_ramM  && mem_readM;
-            sel_gpioDM <= sel_gpioM && mem_readM;
+            sel_ram_next  <= sel_ram  && mem_read;
+            sel_gpio_next <= sel_gpio && mem_read;
+            sel_uart_next <= sel_uart && mem_read;
         end
     end
 
@@ -118,12 +157,15 @@ module simple_bus(
     //==================================================
 
     always @(*) begin
-        if (sel_ramDM)
-            cpu_rdataDM = ram_rdataDM;
-        else if (sel_gpioDM)
-            cpu_rdataDM = gpio_rdataDM;
-        else
-            cpu_rdataDM = 32'b0;
+        if (sel_ram_next)
+            cpu_rdata = ram_rdata;
+        else if (sel_gpio_next)
+            cpu_rdata = gpio_rdata;
+        else if (sel_uart_next) begin
+            cpu_rdata = uart_rdata;
+        end else begin
+            cpu_rdata = 32'b0;
+        end
     end
 
     

@@ -31,7 +31,7 @@ module boot_rom #(parameter ADDR_WIDTH = 10)(
 
 
     initial begin
-        $readmemh("lab5_gpio.mem", rom);
+        $readmemh("lab6_boot.mem", rom);
     end
 
     always @(posedge clk) begin
