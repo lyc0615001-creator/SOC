@@ -11,7 +11,7 @@ module Datapath (
     input branchD, jumpD,
     input used_rsD, used_rtD,
     input imm_zero_extD, branch_neD,
-    input [2:0] alu_controlE,
+    input [3:0] alu_controlE,
     input jrD,
     output [31:0] pc_oF, alu_resultM, DM_data_iM, instrD,
     output stall, validM
@@ -25,14 +25,14 @@ module Datapath (
     
     // D阶段变量
     wire zeroD, branch_selD, jump_selD, jr_selD;
-    wire [4:0] rsD, rtD, rdD;
+    wire [4:0] rsD, rtD, rdD, shamtD;
     wire [15:0] lw_offsetD;
     wire [31:0] pc_plus4D, pc_branchD, pc_jumpD, pc_nextD, pc_iD, pc_jrD, pc_next1D;
     wire [31:0] imm_extD, imm_ext_sl2D, jump_sl2D;
     wire [31:0] RF_data_o1D, RF_data_o2D;
 
     // E阶段变量
-    wire [4:0] RF_address3E, rsE, rtE, rdE;
+    wire [4:0] RF_address3E, rsE, rtE, rdE, shamtE;
     wire [31:0] imm_extE, pc_plus4E;
     wire [31:0] DM_data_iE, alu_src_i2E, alu_resultE;
     wire [31:0] RF_data_o1_mux4E, RF_data_o2_mux4E;
@@ -67,6 +67,7 @@ module Datapath (
     assign rsD = instrD[25:21];
     assign rtD = instrD[20:16];
     assign rdD = instrD[15:11];
+    assign shamtD = instrD[10:6];
     assign lw_offsetD = instrD[15:0];
 
     assign DM_data_iE = alu_src_i0E;
@@ -107,7 +108,7 @@ module Datapath (
 
 
     // D -> E 流水线触发器
-    // 延迟变量 RF_data_o1_mux4D RF_data_o2_mux4D imm_extD rsD rtD rdD pc_plus4D
+    // 延迟变量 RF_data_o1_mux4D RF_data_o2_mux4D imm_extD rsD rtD rdD pc_plus4D shamtD
     flopenrc #(32) u_flopenrc_RF_data_o1_mux4E(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(RF_data_o1_mux4D), .dout(RF_data_o1_mux4E));
     flopenrc #(32) u_flopenrc_RF_data_o2_mux4E(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(RF_data_o2_mux4D), .dout(RF_data_o2_mux4E));
     flopenrc #(32) u_flopenrc_sign_extE(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(imm_extD), .dout(imm_extE));
@@ -115,6 +116,7 @@ module Datapath (
     flopenrc #(5) u_flopenrc_rsE(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(rsD), .dout(rsE));
     flopenrc #(5) u_flopenrc_rtE(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(rtD), .dout(rtE));
     flopenrc #(5) u_flopenrc_rdE(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(rdD), .dout(rdE));
+    flopenrc #(5) u_flopenrc_shamtE(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(shamtD), .dout(shamtE));
 
     flopenrc #(32) u_flopenrc_pc_plus4E(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~stall), .clear(1'b0), .din(pc_plus4D), .dout(pc_plus4E));
 
@@ -152,6 +154,7 @@ module Datapath (
         .alu_control(alu_controlE),
         .alu_data_i1(alu_src_i1E),
         .alu_data_i2(alu_src_i2E),
+        .shamt(shamtE),
         .alu_data_o(alu_resultE)
         );
 

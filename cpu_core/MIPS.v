@@ -16,7 +16,7 @@ module MIPS (
     wire branchD, jumpD;
     wire used_rsD, used_rtD;
     wire imm_zero_extD, branch_neD;
-    wire [2:0] alu_controlE;
+    wire [3:0] alu_controlE;
     wire [31:0] instrD;
     wire validM, mem_write_enM, mem_read_enM, stall;
     wire jrD;
