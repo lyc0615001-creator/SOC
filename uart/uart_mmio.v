@@ -68,9 +68,9 @@ module uart_mmio(
             end
 
             // 读数据则修改状态
-            if (uart_re && uart_addr == DATA_ADDR) begin
-                rx_ready <= 1'b0;
-            end
+            // if (uart_re && uart_addr == DATA_ADDR) begin
+            //     rx_ready <= 1'b0;
+            // end
 
             // uart rx 接收新数据
             if (rx_valid) begin

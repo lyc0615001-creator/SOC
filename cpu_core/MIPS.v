@@ -10,14 +10,16 @@ module MIPS (
     output [31:0] DM_data_iM
 );
     wire reg_write_enE, reg_write_enM, reg_write_enDM;
-    wire reg_write_enW, alu_src_muxE, reg_data_muxDM, reg_dst_muxE;
-    wire reg_data_muxE, reg_data_muxM;
+    wire reg_write_enW, alu_src_muxE;
+    wire [1:0] reg_dst_muxE;
+    wire [1:0] reg_data_muxE, reg_data_muxM, reg_data_muxDM;
     wire branchD, jumpD;
     wire used_rsD, used_rtD;
     wire imm_zero_extD, branch_neD;
     wire [2:0] alu_controlE;
     wire [31:0] instrD;
     wire validM, mem_write_enM, mem_read_enM, stall;
+    wire jrD;
 
     Datapath u_Datapath(
         .clk(clk), 
@@ -41,6 +43,7 @@ module MIPS (
         .imm_zero_extD(imm_zero_extD),
         .branch_neD(branch_neD),
         .alu_controlE(alu_controlE),
+        .jrD(jrD),
         // out
         .pc_oF(pc_oF),
         .alu_resultM(alu_resultM),
@@ -80,7 +83,8 @@ module MIPS (
         .used_rtD(used_rtD),
         .imm_zero_extD(imm_zero_extD),
         .branch_neD(branch_neD),
-        .alu_controlE(alu_controlE)
+        .alu_controlE(alu_controlE),
+        .jrD(jrD)
     );
     
 endmodule

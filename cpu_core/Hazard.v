@@ -26,8 +26,8 @@ module Hazard(
         input used_rsD, used_rtD,
         input [4:0] RF_address3E, RF_address3M, RF_address3DM,
         input reg_write_enE, reg_write_enM, reg_write_enDM,
-        input reg_data_muxE, reg_data_muxM, reg_data_muxDM,
-        input branch_selD, jump_selD, branchD,
+        input [1:0] reg_data_muxE, reg_data_muxM, reg_data_muxDM,
+        input branch_selD, jump_selD, branchD, jr_selD, jrD,
         input validD, validE, validM, validDM,
         output [1:0] forwardAD, forwardBD,
         output forwardAE, forwardBE,
@@ -39,7 +39,7 @@ module Hazard(
 
     // F IM D E M DM W
 
-    // R 数据冒险
+    // R + jal数据冒险
     // 原因：当前指令写入地址为下一指令读取地址 需要数据前递
     // 前递D阶段架构 E/M/DM/W + normal -> D 共五种情况
 
@@ -47,13 +47,13 @@ module Hazard(
     // 定义 forwardAD 000-normal  001-E  010-M  011-DM  100-W 
     // ** v2.2 删除W阶段前递，使用同周期读写判断
 
-    assign forwardAD = (validE && reg_write_enE && !reg_data_muxE && (RF_address3E != 5'b0) && (RF_address3E == rsD)) ? 2'b01 :
-                       (validM && reg_write_enM && !reg_data_muxM && (RF_address3M != 5'b0) && (RF_address3M == rsD)) ? 2'b10 :
+    assign forwardAD = (validE && reg_write_enE && (reg_data_muxE != 2'b01 ) && (RF_address3E != 5'b0) && (RF_address3E == rsD)) ? 2'b01 :
+                       (validM && reg_write_enM && (reg_data_muxM != 2'b01 ) && (RF_address3M != 5'b0) && (RF_address3M == rsD)) ? 2'b10 :
                        (validDM && reg_write_enDM && (RF_address3DM != 5'b0) && (RF_address3DM == rsD)) ? 2'b11 :
                        2'b00;
     
-    assign forwardBD = (validE && reg_write_enE && !reg_data_muxE && (RF_address3E != 5'b0) && (RF_address3E == rtD)) ? 2'b01 :
-                       (validM && reg_write_enM && !reg_data_muxM && (RF_address3M != 5'b0) && (RF_address3M == rtD))  ? 2'b10 :
+    assign forwardBD = (validE && reg_write_enE && (reg_data_muxE != 2'b01) && (RF_address3E != 5'b0) && (RF_address3E == rtD)) ? 2'b01 :
+                       (validM && reg_write_enM && (reg_data_muxM != 2'b01) && (RF_address3M != 5'b0) && (RF_address3M == rtD))  ? 2'b10 :
                        (validDM && reg_write_enDM && (RF_address3DM != 5'b0) && (RF_address3DM == rtD)) ? 2'b11 :
                        2'b00;
 
@@ -82,13 +82,13 @@ module Hazard(
     assign matchA = validM && reg_write_enM && (RF_address3M != 5'b0) && (RF_address3M == rsE);
     assign matchB = validM && reg_write_enM && (RF_address3M != 5'b0) && (RF_address3M == rtE);
 
-    assign forwardAE = (validDM && reg_write_enDM && reg_data_muxDM && (RF_address3DM != 5'b0) && (RF_address3DM == rsE) && !matchA);
-    assign forwardBE = (validDM && reg_write_enDM && reg_data_muxDM && (RF_address3DM != 5'b0) && (RF_address3DM == rtE) && !matchB);
+    assign forwardAE = (validDM && reg_write_enDM && (reg_data_muxDM == 2'b01) && (RF_address3DM != 5'b0) && (RF_address3DM == rsE) && !matchA);
+    assign forwardBE = (validDM && reg_write_enDM && (reg_data_muxDM == 2'b01) && (RF_address3DM != 5'b0) && (RF_address3DM == rtE) && !matchB);
 
-    assign hazardE = validD && validE && reg_write_enE && reg_data_muxE && (RF_address3E != 5'b0) && ((used_rsD && RF_address3E == rsD) || (used_rtD && RF_address3E == rtD));
-    assign hazardM = validD && validM && reg_write_enM && reg_data_muxM && (RF_address3M != 5'b0) && ((used_rsD && RF_address3M == rsD) || (used_rtD && RF_address3M == rtD));
+    assign hazardE = validD && validE && reg_write_enE && (reg_data_muxE == 2'b01) && (RF_address3E != 5'b0) && ((used_rsD && RF_address3E == rsD) || (used_rtD && RF_address3E == rtD));
+    assign hazardM = validD && validM && reg_write_enM && (reg_data_muxM == 2'b01) && (RF_address3M != 5'b0) && ((used_rsD && RF_address3M == rsD) || (used_rtD && RF_address3M == rtD));
 
-    assign stall = hazardE || (branchD && hazardM);
+    assign stall = hazardE || ((branchD || jrD) && hazardM);
 
     // beq jump 控制冒险
     // 原因：当前执行beq或jump，需要生成一个redirectD信号，无效之后的两条指令
@@ -97,7 +97,7 @@ module Hazard(
     // D阶段判别架构
     // 判断条件：branch_selD || jump_selD
 
-    assign redirectD = (jump_selD || branch_selD);
+    assign redirectD = (jump_selD || branch_selD || jr_selD);
 
 
 
