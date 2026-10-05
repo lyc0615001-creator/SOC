@@ -1,6 +1,7 @@
 module Controller (
     input clk, rst, cpu_en,
     input stall,
+    input [4:0] rs,
     input [5:0] op_code,
     input [5:0] funct,
     output reg_write_enE, reg_write_enM, reg_write_enDM, mem_read_enM,
@@ -11,9 +12,9 @@ module Controller (
     output used_rsD, used_rtD,
     output imm_zero_extD, branch_neD,
     output [3:0] alu_controlE,
-    output jrD
+    output jrD, cp0_write_enE, eretD
 );
-    wire [11:0] sign;
+    wire [12:0] sign;
     wire [2:0] aluop;
 
     wire mem_read_enD, mem_read_enE;
@@ -23,11 +24,13 @@ module Controller (
     wire mem_write_enD, mem_write_enE;
     wire [1:0] reg_data_muxD;
     wire [3:0] alu_controlD;
+    wire cp0_write_enD;
 
     // 主控制信号译码
     main_decode u_main_decode(
         .op_code(op_code),
         .funct(funct),
+        .rs(rs),
         .sign(sign),
         .aluop(aluop)
     );
@@ -41,7 +44,8 @@ module Controller (
         branchD, jumpD, 
         mem_read_enD,
         imm_zero_extD, 
-        branch_neD} = sign;
+        branch_neD,
+        cp0_write_enD} = sign;
 
     // alu控制信号译码
     alu_decode u_alu_decode(
@@ -61,7 +65,12 @@ module Controller (
     // 针对jr指令的特殊处理
     assign jrD = ((op_code == 6'b000000) && (funct == 6'b001000)) ? 1'b1 : 1'b0;
     assign reg_write_enD = jrD ? 1'b0 : reg_write_en_tempD;
+
+    // 针对eret指令的特殊处理
+    assign eretD = (op_code == 6'b010000) && (rs == 5'b10000) && (funct == 6'b011000);
   
+    // cp0_write_en
+    flopenrc #(1) u_flopenrc_cp0_write_enE(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(cp0_write_enD), .dout(cp0_write_enE));
 
     // mem_read_en
     flopenrc #(1) u_flopenrc_mem_read_enE(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(mem_read_enD), .dout(mem_read_enE));
@@ -99,28 +108,31 @@ endmodule
 module main_decode (
     input [5:0] op_code,
     input [5:0] funct,
-    output [11:0] sign,
+    input [4:0] rs,
+    output [12:0] sign,
     output [2:0] aluop
 );
     wire [2:0] aluop;
-    wire [14:0] signs;
+    wire [15:0] signs;
 
-    assign signs = (op_code == 6'b000000) ? 15'b10_0100_000_000_111 : // R-Type
-                   (op_code == 6'b100011) ? 15'b11_0001_000_100_000 : // lw
-                   (op_code == 6'b101011) ? 15'b01_0000_100_000_000 : // sw
-                   (op_code == 6'b000100) ? 15'b00_0000_010_000_001 : // beq
-                   (op_code == 6'b000010) ? 15'b00_0000_001_000_001 : // jump
-                   (op_code == 6'b001000) ? 15'b11_0000_000_000_000 : // addi
-                   (op_code == 6'b000101) ? 15'b00_0000_010_001_001 : // bne
-                   (op_code == 6'b001101) ? 15'b11_0000_000_010_011 : // ori
-                   (op_code == 6'b001100) ? 15'b11_0000_000_010_010 : // andi
-                   (op_code == 6'b001110) ? 15'b11_0000_000_010_100 : // xori
-                   (op_code == 6'b001111) ? 15'b11_0000_000_000_110 : // lui
-                   (op_code == 6'b000011) ? 15'b10_1010_001_000_001 : // jal
-                   15'd0;
+    assign signs = (op_code == 6'b000000) ? 16'b10_0100_000_0000_111 : // R-Type
+                   (op_code == 6'b100011) ? 16'b11_0001_000_1000_000 : // lw
+                   (op_code == 6'b101011) ? 16'b01_0000_100_0000_000 : // sw
+                   (op_code == 6'b000100) ? 16'b00_0000_010_0000_001 : // beq
+                   (op_code == 6'b000010) ? 16'b00_0000_001_0000_001 : // jump
+                   (op_code == 6'b001000) ? 16'b11_0000_000_0000_000 : // addi
+                   (op_code == 6'b000101) ? 16'b00_0000_010_0010_001 : // bne
+                   (op_code == 6'b001101) ? 16'b11_0000_000_0100_011 : // ori
+                   (op_code == 6'b001100) ? 16'b11_0000_000_0100_010 : // andi
+                   (op_code == 6'b001110) ? 16'b11_0000_000_0100_100 : // xori
+                   (op_code == 6'b001111) ? 16'b11_0000_000_0000_110 : // lui
+                   (op_code == 6'b000011) ? 16'b10_1010_001_0000_001 : // jal
+                   (op_code == 6'b010000) ? (rs == 5'b00000 ? 16'b10_0011_000_0000_000 : // mfc0
+                                             rs == 5'b00100 ? 16'b00_0000_000_0001_000 : 16'd0) : // mtc0
+                   16'd0;
 
     assign aluop = signs[2:0];
-    assign sign = signs[14:3];
+    assign sign = signs[15:3];
 
 endmodule
 
@@ -152,6 +164,7 @@ endmodule
 module assist_decode (
     input [5:0] op_code,
     input [5:0] funct,
+    input [4:0] rs,
     output reg  used_rs,
     output reg  used_rt
 );
@@ -175,6 +188,22 @@ module assist_decode (
                         used_rs = 1'b1;
                         used_rt = 1'b1;
                     end
+                endcase
+            end
+            6'b010000: begin
+                case (rs)
+                    5'b00000: begin
+                        used_rs = 1'b0;
+                        used_rt = 1'b0;
+                    end 
+                    5'b00100: begin
+                        used_rs = 1'b0;
+                        used_rt = 1'b1;
+                    end 
+                    default: begin
+                        used_rs = 1'b0;
+                        used_rt = 1'b0;
+                    end 
                 endcase
             end
             6'b100011, // lw

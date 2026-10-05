@@ -29,10 +29,10 @@ module mux4 #(parameter WIDTH = 32)(
         output [WIDTH-1:0] data_o
     );
 
-    assign data_o = (sel == 3'b00) ? data_i1 :
-                    (sel == 3'b01) ? data_i2 :
-                    (sel == 3'b10) ? data_i3 :
-                    (sel == 3'b11) ? data_i4 :
+    assign data_o = (sel == 2'b00) ? data_i1 :
+                    (sel == 2'b01) ? data_i2 :
+                    (sel == 2'b10) ? data_i3 :
+                    (sel == 2'b11) ? data_i4 :
                     data_i1;
 endmodule
 

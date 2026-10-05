@@ -27,6 +27,7 @@ module uart_mmio(
         // bus side
         input              uart_re,
         input              uart_we,
+        input       [3:0]  uart_wstrb,
         input       [7:0]  uart_addr,
         input       [31:0] uart_wdata,
         output  reg [31:0] uart_rdata,
@@ -62,7 +63,7 @@ module uart_mmio(
             tx_start <= 1'b0;
 
             // uart tx
-            if (uart_we && uart_addr == DATA_ADDR && tx_ready) begin
+            if (uart_we && uart_addr == DATA_ADDR && tx_ready && uart_wstrb[0]) begin
                 tx_data <= uart_wdata[7:0];
                 tx_start <= 1'b1;
             end

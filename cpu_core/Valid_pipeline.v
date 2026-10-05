@@ -26,13 +26,15 @@ module Valid_pipeline(
         input cpu_en,
         input stall,
         input redirectD,
+        input interrupt_acceptD,
+        input eretD,
         output [5:0] valid_signs
     ); 
     // 新增valid架构取代flush
     // 原因：flush过于依赖当前默认opcode，控制较为复杂
     // 解决措施：用valid区分有效和无效指令，在结果上进行控制
 
-    // 产生条件：与stall和redirectD有关
+    // 产生条件：与stall和redirectD有关 + interrupt_acceptD
     // 生效条件：
 
     localparam V_IM = 5;
@@ -50,20 +52,29 @@ module Valid_pipeline(
         if (!rst) begin
             valid_reg <= 6'b0;
         end else if (cpu_en) begin
-            if (stall) begin
+            if (interrupt_acceptD) begin
                 valid_reg <= {
-                    valid_reg[V_IM],
-                    valid_reg[V_D],
+                    1'b0,
+                    1'b0,
                     1'b0,
                     valid_reg[V_E],
                     valid_reg[V_M],
                     valid_reg[V_DM]
                 };
-            end else if (redirectD)  begin
+            end else if (redirectD || eretD)  begin
                 valid_reg <= {
                     1'b0,
                     1'b0,
                     valid_reg[V_D],
+                    valid_reg[V_E],
+                    valid_reg[V_M],
+                    valid_reg[V_DM]
+                };
+            end else if (stall) begin
+                valid_reg <= {
+                    valid_reg[V_IM],
+                    valid_reg[V_D],
+                    1'b0,
                     valid_reg[V_E],
                     valid_reg[V_M],
                     valid_reg[V_DM]

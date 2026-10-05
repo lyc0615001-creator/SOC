@@ -1,12 +1,13 @@
 module MIPS (
     input clk, rst,
     input cpu_en,
+    input irq,
     input [31:0] instrIM,
     input [31:0] DM_data_oDM,
     output mem_write_en_effM, mem_read_en_effM,
     output rom_en,
     output [31:0] pc_oF,
-    output [31:0] alu_resultM,
+    output [31:0] early_resultM,
     output [31:0] DM_data_iM
 );
     wire reg_write_enE, reg_write_enM, reg_write_enDM;
@@ -19,11 +20,12 @@ module MIPS (
     wire [3:0] alu_controlE;
     wire [31:0] instrD;
     wire validM, mem_write_enM, mem_read_enM, stall;
-    wire jrD;
+    wire jrD, cp0_write_enE, eretD;
 
     Datapath u_Datapath(
         .clk(clk), 
         .rst(rst),
+        .irq(irq),
         .cpu_en(cpu_en),
         .instrIM(instrIM),
         .DM_data_oDM(DM_data_oDM),
@@ -44,9 +46,11 @@ module MIPS (
         .branch_neD(branch_neD),
         .alu_controlE(alu_controlE),
         .jrD(jrD),
+        .cp0_write_enE(cp0_write_enE),
+        .eretD(eretD),
         // out
         .pc_oF(pc_oF),
-        .alu_resultM(alu_resultM),
+        .early_resultM(early_resultM),
         .DM_data_iM(DM_data_iM),
         .instrD(instrD),
         .stall(stall), 
@@ -63,6 +67,7 @@ module MIPS (
         .rst(rst),
         .cpu_en(cpu_en),
         .stall(stall), 
+        .rs(instrD[25:21]), 
         .op_code(instrD[31:26]),
         .funct(instrD[5:0]),
         // out
@@ -84,7 +89,9 @@ module MIPS (
         .imm_zero_extD(imm_zero_extD),
         .branch_neD(branch_neD),
         .alu_controlE(alu_controlE),
-        .jrD(jrD)
+        .jrD(jrD),
+        .cp0_write_enE(cp0_write_enE),
+        .eretD(eretD)
     );
     
 endmodule

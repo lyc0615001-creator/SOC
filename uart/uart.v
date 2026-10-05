@@ -27,6 +27,7 @@ module uart(
         // bus interface
         input              uart_re,
         input              uart_we,
+        input       [3:0]  uart_wstrb,
         input       [7:0]  uart_addr,
         input       [31:0] uart_wdata,
         output      [31:0] uart_rdata,
@@ -49,7 +50,7 @@ module uart(
 
 
     //==================================================
-    // uart_tx instance
+    // uart_mmio instance
     //==================================================
     uart_mmio u_uart_mmio(
         .clk(clk),
@@ -58,6 +59,7 @@ module uart(
         // bus side
         .uart_re(uart_re),
         .uart_we(uart_we),
+        .uart_wstrb(uart_wstrb),
         .uart_addr(uart_addr),
         .uart_wdata(uart_wdata),
         .uart_rdata(uart_rdata),
