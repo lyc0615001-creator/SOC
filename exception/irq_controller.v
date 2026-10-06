@@ -28,11 +28,13 @@ module irq_controller(
         input                timer_irq,
 
         // MMIO
+        input                irq_request,
         input                irq_re,
         input                irq_we,
         input      [3:0]     irq_wstrb,
         input      [7:0]     irq_addr,
         input      [31:0]    irq_wdata,
+        output               irq_ready,
         output reg [31:0]    irq_rdata,
 
         // CPU
@@ -52,28 +54,25 @@ module irq_controller(
 
     assign cpu_irq = |(irq_pending & irq_mask);
 
+    assign irq_ready = irq_request;
+
     //================================================
     // MMIO read decode
     //================================================
-    wire re_pending;
+    wire re_irq;
 
-    wire re_mask;
-
-    assign re_pending = irq_re && irq_addr == PENDING;
-
-    assign re_mask    = irq_re && irq_addr == MASK;
+    assign re_irq = irq_re && irq_request;
 
     //================================================
     // MMIO read data
     //================================================
     wire wr_mask;
 
-    assign wr_mask = irq_we && irq_addr == MASK;
+    assign wr_mask = irq_we && irq_request && irq_addr == MASK;
 
     always @(posedge clk or negedge rst) begin
         if (!rst) begin
             irq_mask <= 32'd0;
-            irq_rdata = 32'd0;
         end else begin
             if (wr_mask) begin
                 if (irq_wstrb[0]) begin
@@ -89,17 +88,22 @@ module irq_controller(
                     irq_mask[31:24] <= irq_wdata[31:24];
                 end
             end
-
-            if (re_pending) begin
-                irq_rdata <= irq_pending;
-            end
-
-            if (re_mask) begin
-                irq_rdata <= irq_mask;
-            end
         end
-        
-        
+    end
+
+    always @(*) begin
+        irq_rdata = 32'd0;
+        if (re_irq) begin
+            case (irq_addr)
+                PENDING: begin
+                    irq_rdata = irq_pending;
+                end
+                MASK: begin
+                    irq_rdata = irq_mask;
+                end
+                default: irq_rdata = 32'd0;
+            endcase
+        end
     end
 
 endmodule

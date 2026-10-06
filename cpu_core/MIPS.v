@@ -3,7 +3,8 @@ module MIPS (
     input cpu_en,
     input irq,
     input [31:0] instrIM,
-    input [31:0] DM_data_oDM,
+    input [31:0] DM_data_oM,
+    input bus_wait,
     output mem_write_en_effM, mem_read_en_effM,
     output rom_en,
     output [31:0] pc_oF,
@@ -19,8 +20,9 @@ module MIPS (
     wire imm_zero_extD, branch_neD;
     wire [3:0] alu_controlE;
     wire [31:0] instrD;
-    wire validM, mem_write_enM, mem_read_enM, stall;
+    wire validM, mem_write_enM, mem_read_enM, hold_de, hold_em, hold_fim;
     wire jrD, cp0_write_enE, eretD;
+    wire bubble_e, bubble_dm;
 
     Datapath u_Datapath(
         .clk(clk), 
@@ -28,7 +30,7 @@ module MIPS (
         .irq(irq),
         .cpu_en(cpu_en),
         .instrIM(instrIM),
-        .DM_data_oDM(DM_data_oDM),
+        .DM_data_oM(DM_data_oM),
         .reg_write_enE(reg_write_enE), 
         .reg_write_enM(reg_write_enM), 
         .reg_write_enDM(reg_write_enDM), 
@@ -48,25 +50,33 @@ module MIPS (
         .jrD(jrD),
         .cp0_write_enE(cp0_write_enE),
         .eretD(eretD),
+        .bus_wait(bus_wait),
         // out
         .pc_oF(pc_oF),
         .early_resultM(early_resultM),
         .DM_data_iM(DM_data_iM),
         .instrD(instrD),
-        .stall(stall), 
-        .validM(validM)
+        .hold_fim(hold_fim), 
+        .hold_de(hold_de), 
+        .hold_em(hold_em), 
+        .validM(validM),
+        .bubble_e(bubble_e),
+        .bubble_dm(bubble_dm)
     );
 
     // 让valid 只生效在处理器内部
     assign mem_write_en_effM = validM && mem_write_enM;
     assign mem_read_en_effM = validM && mem_read_enM;
-    assign rom_en = cpu_en && ~stall;
+    assign rom_en = cpu_en && ~hold_fim;
 
     Controller u_Controller(
         .clk(clk),
         .rst(rst),
         .cpu_en(cpu_en),
-        .stall(stall), 
+        .hold_de(hold_de), 
+        .hold_em(hold_em), 
+        .bubble_e(bubble_e), 
+        .bubble_dm(bubble_dm), 
         .rs(instrD[25:21]), 
         .op_code(instrD[31:26]),
         .funct(instrD[5:0]),

@@ -25,11 +25,13 @@ module uart_mmio(
         input              rst,
 
         // bus side
+        input              uart_request,
         input              uart_re,
         input              uart_we,
         input       [3:0]  uart_wstrb,
         input       [7:0]  uart_addr,
         input       [31:0] uart_wdata,
+        output  reg        uart_ready,
         output  reg [31:0] uart_rdata,
         
         // uart tx side
@@ -51,6 +53,18 @@ module uart_mmio(
 
     assign tx_ready = ~(tx_busy | tx_start);
 
+    wire re_uart;
+    wire we_uart;
+    wire tx_we_fire;
+    wire rx_re_fire;
+
+    assign re_uart = uart_re && uart_request;
+
+    assign we_uart = uart_we && uart_request;
+    
+    assign tx_we_fire = we_uart && uart_addr == DATA_ADDR && tx_ready && uart_wstrb[0];
+
+    assign rx_re_fire = re_uart && uart_addr == DATA_ADDR && rx_ready;
 
     always @(posedge clk or negedge rst) begin
         if (!rst) begin
@@ -63,15 +77,10 @@ module uart_mmio(
             tx_start <= 1'b0;
 
             // uart tx
-            if (uart_we && uart_addr == DATA_ADDR && tx_ready && uart_wstrb[0]) begin
+            if (tx_we_fire) begin
                 tx_data <= uart_wdata[7:0];
                 tx_start <= 1'b1;
             end
-
-            // 读数据则修改状态
-            // if (uart_re && uart_addr == DATA_ADDR) begin
-            //     rx_ready <= 1'b0;
-            // end
 
             // uart rx 接收新数据
             if (rx_valid) begin
@@ -79,25 +88,41 @@ module uart_mmio(
                 rx_data_reg <= rx_data;
             end
 
-            if (uart_re && uart_addr == DATA_ADDR) begin
+            if (rx_re_fire) begin
                 rx_ready <= 1'b0;
             end
 
         end
     end
 
-    always @(posedge clk or negedge rst) begin
-        if (!rst) begin
-            uart_rdata <= 32'd0;
-        end else if (uart_re) begin
+    always @(*) begin
+        uart_ready = 1'b0;
+        uart_rdata = 32'd0;
+        if (re_uart) begin
             case (uart_addr)
                 DATA_ADDR: begin
-                    uart_rdata <= {24'd0, rx_data_reg};
+                    uart_ready = rx_ready;
+                    if (rx_ready) begin
+                        uart_rdata = {24'd0, rx_data_reg};
+                    end
                 end
                 STATUS_ADDR: begin
-                    uart_rdata <= {30'd0, rx_ready, tx_ready};
+                    uart_ready = 1'b1;
+                    uart_rdata = {30'd0, rx_ready, tx_ready};
                 end
-                default: uart_rdata <= 32'd0;
+                default: begin
+                    uart_ready = 1'b1;
+                    uart_rdata = 32'd0;
+                end
+            endcase
+        end else if (we_uart) begin
+            case (uart_addr)
+                DATA_ADDR: begin
+                    uart_ready = tx_ready;
+                end
+                default: begin
+                    uart_ready = 1'b1;
+                end
             endcase
         end
     end

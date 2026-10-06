@@ -25,11 +25,13 @@ module uart(
         input              rst,
 
         // bus interface
+        input              uart_request,
         input              uart_re,
         input              uart_we,
         input       [3:0]  uart_wstrb,
         input       [7:0]  uart_addr,
         input       [31:0] uart_wdata,
+        output             uart_ready,
         output      [31:0] uart_rdata,
 
         // physical pins
@@ -57,11 +59,13 @@ module uart(
         .rst(rst),
 
         // bus side
+        .uart_request(uart_request),
         .uart_re(uart_re),
         .uart_we(uart_we),
         .uart_wstrb(uart_wstrb),
         .uart_addr(uart_addr),
         .uart_wdata(uart_wdata),
+        .uart_ready(uart_ready),
         .uart_rdata(uart_rdata),
         
         // uart tx side

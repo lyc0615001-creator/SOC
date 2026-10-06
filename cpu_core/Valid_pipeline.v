@@ -27,8 +27,15 @@ module Valid_pipeline(
         input stall,
         input redirectD,
         input interrupt_acceptD,
-        input eretD,
-        output [5:0] valid_signs
+        input bus_wait,
+        output [5:0] valid_signs,
+        output       hold_pc,
+        output       hold_fim,
+        output       hold_imd,
+        output       hold_de,
+        output       hold_em,
+        output       bubble_e,
+        output       bubble_dm
     ); 
     // 新增valid架构取代flush
     // 原因：flush过于依赖当前默认opcode，控制较为复杂
@@ -52,7 +59,16 @@ module Valid_pipeline(
         if (!rst) begin
             valid_reg <= 6'b0;
         end else if (cpu_en) begin
-            if (interrupt_acceptD) begin
+            if (bus_wait) begin
+                valid_reg <= {
+                    valid_reg[V_IM],
+                    valid_reg[V_D],
+                    valid_reg[V_E],
+                    valid_reg[V_M],
+                    1'b0,
+                    valid_reg[V_DM]
+                };
+            end else if (interrupt_acceptD) begin
                 valid_reg <= {
                     1'b0,
                     1'b0,
@@ -61,7 +77,7 @@ module Valid_pipeline(
                     valid_reg[V_M],
                     valid_reg[V_DM]
                 };
-            end else if (redirectD || eretD)  begin
+            end else if (redirectD)  begin
                 valid_reg <= {
                     1'b0,
                     1'b0,
@@ -92,4 +108,13 @@ module Valid_pipeline(
         end
     end
 
+    // stall data
+    assign hold_pc   = stall || bus_wait;
+    assign hold_fim  = stall || bus_wait;
+    assign hold_imd  = stall || bus_wait;
+    assign hold_de   = bus_wait;
+    assign hold_em   = bus_wait;
+
+    assign bubble_e  = stall && ~ bus_wait;
+    assign bubble_dm = bus_wait;
 endmodule

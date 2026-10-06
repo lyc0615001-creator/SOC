@@ -27,7 +27,7 @@ module Hazard(
         input [4:0] RF_address3E, RF_address3M, RF_address3DM,
         input reg_write_enE, reg_write_enM, reg_write_enDM,
         input [1:0] reg_data_muxE, reg_data_muxM, reg_data_muxDM,
-        input branch_selD, jump_selD, branchD, jr_selD, jrD,
+        input branch_selD, jump_selD, branchD, jr_selD, jrD, eretD,
         input validD, validE, validM, validDM,
         output [1:0] forwardAD, forwardBD,
         output forwardAE, forwardBE,
@@ -97,7 +97,7 @@ module Hazard(
     // D阶段判别架构
     // 判断条件：branch_selD || jump_selD
 
-    assign redirectD = (jump_selD || branch_selD || jr_selD);
+    assign redirectD = (jump_selD || branch_selD || jr_selD || eretD);
 
 
 

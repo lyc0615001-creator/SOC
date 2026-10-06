@@ -24,12 +24,14 @@ module timer_mimo(
         input                clk,
         input                rst,
 
+        input                timer_request,
         input                timer_re,
         input                timer_we,
         input       [3:0]    timer_wstrb,
         input       [7:0]    timer_addr,
         input       [31:0]   timer_wdata,
 
+        output               timer_ready,
         output reg  [31:0]   timer_rdata,
         output               timer_irq
     );
@@ -49,6 +51,8 @@ module timer_mimo(
     reg        pending;
 
     assign timer_irq = pending && irq_en;
+
+    assign timer_ready = timer_request;
     
 
     //================================================
@@ -57,7 +61,11 @@ module timer_mimo(
 
     wire mimo_write;
     
-    assign mimo_write = timer_we && (timer_wstrb == 4'b1111);
+    wire mimo_read;
+    
+    assign mimo_write = timer_we && (timer_wstrb == 4'b1111) && timer_request;
+
+    assign mimo_read  = timer_re && timer_request;
 
     wire wr_ctrl;
     wire wr_count;
@@ -153,24 +161,23 @@ module timer_mimo(
         end
     end
 
-    always @(posedge clk or negedge rst) begin
-        if (!rst) begin
-            timer_rdata <= 32'd0;
-        end else if (timer_re) begin
+    always @(*) begin
+        timer_rdata = 32'd0;
+        if (mimo_read) begin
             case (timer_addr)
                 CTRL: begin
-                    timer_rdata <= {30'd0, irq_en, timer_en};
+                    timer_rdata = {30'd0, irq_en, timer_en};
                 end 
                 COUNT: begin
-                    timer_rdata <= count;
+                    timer_rdata = count;
                 end
                 COMPARE: begin
-                    timer_rdata <= compare;
+                    timer_rdata = compare;
                 end
                 STATUS: begin
-                    timer_rdata <= {31'd0, pending};
+                    timer_rdata = {31'd0, pending};
                 end
-                default: timer_rdata <= 32'd0;
+                default: timer_rdata = 32'd0;
             endcase
         end
     end
