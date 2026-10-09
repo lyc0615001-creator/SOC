@@ -57,7 +57,7 @@ module Datapath (
     // HAZARD 变量
     wire [1:0] forwardAD, forwardBD;
     wire [31:0] RF_data_o1_mux4D, RF_data_o2_mux4D;
-    wire redirectD;
+    wire redirectD, stall;
     wire [31:0] ForwardValueE, ForwardValueM, ForwardValueDM;
 
     // Valid_pipeline 变量
@@ -244,7 +244,7 @@ module Datapath (
 
     // ====beq & bne====
     assign zeroD = (RF_data_o1_mux4D == RF_data_o2_mux4D);
-    assign branch_selD = validD && !hold_de && branchD && (zeroD ^ branch_neD);
+    assign branch_selD = validD && !hold_pc && branchD && (zeroD ^ branch_neD);
 
 
     sl2 u_sl2_branch(
@@ -266,11 +266,11 @@ module Datapath (
     );
 
     assign pc_jumpD = {pc_plus4D[31:28], jump_sl2D[27:0]};
-    assign jump_selD = validD && !hold_de && jumpD;
+    assign jump_selD = validD && !hold_pc && jumpD;
 
     // ====jr====
     assign pc_jrD = RF_data_o1_mux4D;
-    assign jr_selD = validD && !hold_de && jrD;
+    assign jr_selD = validD && !hold_pc && jrD;  // 实为stall && bus_wait
 
     // ====mfc0 mtc0====
     assign cp0_weE = cp0_write_enE && validE;

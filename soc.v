@@ -1,11 +1,12 @@
+// `default_nettype none
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer: 
 // 
-// Create Date: 2026/09/23 19:12:39
+// Create Date: 2026/10/08 20:55:54
 // Design Name: 
-// Module Name: bus_pipeline
+// Module Name: TOP
 // Project Name: 
 // Target Devices: 
 // Tool Versions: 
@@ -26,330 +27,146 @@ module soc(
         output    [3:0]    led,
         
         output             tx,
-        input              rx
+        input              rx,
+
+        inout       [15:0] ddr3_dq,
+        inout       [1:0]  ddr3_dqs_n,
+        inout       [1:0]  ddr3_dqs_p,
+
+        output      [13:0] ddr3_addr,
+        output      [2:0]  ddr3_ba,
+        output             ddr3_ras_n,
+        output             ddr3_cas_n,
+        output             ddr3_we_n,
+        output             ddr3_reset_n,
+        output      [0:0]  ddr3_ck_p,
+        output      [0:0]  ddr3_ck_n,
+        output      [0:0]  ddr3_cke,
+        output      [0:0]  ddr3_cs_n,
+        output      [1:0]  ddr3_dm,
+        output      [0:0]  ddr3_odt
     );
-        //================ CPU master =================
-        wire              cpu_read;
-        wire              cpu_write;
-        wire      [3:0]   cpu_wstrb;
-        wire      [31:0]  cpu_addr;
-        wire      [31:0]  cpu_wdata;
-        wire      [31:0]  cpu_rdata;
 
-        wire              rom_en;
-        wire      [31:0]  pc_oF;
-        wire      [31:0]  instrIM;
+    //================ CPU master =================
+    wire              cpu_read;
+    wire              cpu_write;
+    wire      [3:0]   cpu_wstrb;
+    wire      [31:0]  cpu_addr;
+    wire      [31:0]  cpu_wdata;
+    wire      [31:0]  cpu_rdata;
 
-        wire              cpu_en;
+    wire              rom_en;
+    wire      [31:0]  pc_oF;
+    wire      [31:0]  instr;
 
-        wire              cpu_request;
-        wire              cpu_ready;
+    wire              cpu_en;
 
-        //================ BRAM slave =================
-        wire              ram_request;
-        wire              ram_re;
-        wire              ram_we;
-        wire      [3:0]   ram_wstrb;
-        wire      [31:0]  ram_addr;
-        wire      [31:0]  ram_wdata;
+    wire              cpu_request;
+    wire              cpu_ready;
 
-        wire              ram_ready;
-        wire      [31:0]  ram_rdata;
+    wire              cpu_irq;
 
-        //================ GPIO slave =================
-        wire              gpio_request;
-        wire              gpio_re;
-        wire              gpio_we;
-        wire      [3:0]   gpio_wstrb;
-        wire      [7:0]   gpio_addr;
-        wire      [31:0]  gpio_wdata;
+    //================ CLK WIZ master =================
 
-        wire              gpio_ready;
-        wire      [31:0]  gpio_rdata;
+    wire clk_cpu_50;
 
-        //================ UART slave =================
-        wire              uart_request;
-        wire              uart_re;
-        wire              uart_we;
-        wire      [3:0]   uart_wstrb;
-        wire      [7:0]   uart_addr;
-        wire      [31:0]  uart_wdata;
+    wire clk_mig_160;
 
-        wire              uart_ready;
-        wire      [31:0]  uart_rdata;
+    wire clk_ref_200;
 
-        //================ TIMER slave =================
-        wire              timer_request;
-        wire              timer_re;
-        wire              timer_we;
-        wire      [3:0]   timer_wstrb;
-        wire      [7:0]   timer_addr;
-        wire      [31:0]  timer_wdata;
+    wire mig_rst_n;  // DDR-mig复位信号，低有效
 
-        wire              timer_ready;
-        wire      [31:0]  timer_rdata;
-
-        wire              timer_irq;
-
-        //================ IRQ slave =================
-        wire              irq_request;
-        wire              irq_re;
-        wire              irq_we;
-        wire      [3:0]   irq_wstrb;
-        wire      [7:0]   irq_addr;
-        wire      [31:0]  irq_wdata;
-
-        wire              irq_ready;
-        wire      [31:0]  irq_rdata;
-
-        wire              cpu_irq;
-
-        //================ SLOW slave =================
-        wire              slow_request;
-        wire              slow_re;
-        wire              slow_we;
-        wire      [7:0]   slow_addr;
-        wire      [3:0]   slow_wstrb;
-        wire      [31:0]  slow_wdata;
-
-        wire              slow_ready;
-        wire      [31:0]  slow_rdata;
+    wire cpu_rst_n;  // 全局cpu复位信号，低有效
 
 
-        //==================================================
-        // CPU instance
-        //==================================================
-        CPU_TOP u_CPU_TOP(
-            .clk(clk),
-            .rst(rst),
-            .cpu_rdataM(cpu_rdata), // 获得读数据
-            .cpu_en(cpu_en), // 分频信号
-            .cpu_readM(cpu_read), // 读使能
-            .cpu_writeM(cpu_write), // 写使能
-            .cpu_wstrbM(cpu_wstrb), // 字节写使能
-            .cpu_addrM(cpu_addr), // 读写地址
-            .cpu_wdataM(cpu_wdata), // 写数据
-            .irq(cpu_irq), // 中断使能
-            .cpu_ready(cpu_ready), // 事务结束
-            // instr
-            .rom_en(rom_en),
-            .pc_oF(pc_oF),
-            .instrIM(instrIM),
-            .cpu_requestM(cpu_request)
-        );
-
-        //==================================================
-        // instruction instance
-        //==================================================
-        boot_rom #(10) u_boot_rom(
-            .clk(clk),
-            .en(rom_en),
-            .pc(pc_oF),
-            .instr(instrIM)
-        );
-
-        //==================================================
-        // bus instance
-        //==================================================
-
-        simple_bus u_simple_bus(
-            .clk(clk),
-            .rst(rst),
-            .cpu_en(cpu_en),
-
-            //================ CPU master =================
-            .cpu_request(cpu_request),
-            .cpu_read(cpu_read),
-            .cpu_write(cpu_write),
-            .cpu_wstrb(cpu_wstrb),
-            .cpu_addr(cpu_addr),
-            .cpu_wdata(cpu_wdata),
-
-            .cpu_ready(cpu_ready),
-            .cpu_rdata(cpu_rdata),
-
-            //================ BRAM slave =================
-            .ram_request(ram_request),
-            .ram_re(ram_re),
-            .ram_we(ram_we),
-            .ram_wstrb(ram_wstrb),
-            .ram_addr(ram_addr),
-            .ram_wdata(ram_wdata),
-
-            .ram_ready(ram_ready),
-            .ram_rdata(ram_rdata),
-
-            //================ GPIO slave =================
-            .gpio_request(gpio_request),
-            .gpio_re(gpio_re),
-            .gpio_we(gpio_we),
-            .gpio_wstrb(gpio_wstrb),
-            .gpio_addr(gpio_addr),
-            .gpio_wdata(gpio_wdata),
-
-            .gpio_ready(gpio_ready),
-            .gpio_rdata(gpio_rdata),
-
-            //================ UART slave =================
-            .uart_request(uart_request),
-            .uart_re(uart_re),
-            .uart_we(uart_we),
-            .uart_wstrb(uart_wstrb),
-            .uart_addr(uart_addr),
-            .uart_wdata(uart_wdata),
-
-            .uart_ready(uart_ready),
-            .uart_rdata(uart_rdata),
-
-            //================ TIMER slave =================
-            .timer_request(timer_request),
-            .timer_re(timer_re),
-            .timer_we(timer_we),
-            .timer_wstrb(timer_wstrb),
-            .timer_addr(timer_addr),
-            .timer_wdata(timer_wdata),
-
-            .timer_ready(timer_ready),
-            .timer_rdata(timer_rdata),
-
-            //================ TIMER slave =================
-            .irq_request(irq_request),
-            .irq_re(irq_re),
-            .irq_we(irq_we),
-            .irq_wstrb(irq_wstrb),
-            .irq_addr(irq_addr),
-            .irq_wdata(irq_wdata),
-
-            .irq_ready(irq_ready),
-            .irq_rdata(irq_rdata),
-
-            //================ SLOW slave =================
-            .slow_request(slow_request),
-            .slow_re(slow_re),
-            .slow_we(slow_we),
-            .slow_wstrb(slow_wstrb),
-            .slow_addr(slow_addr),
-            .slow_wdata(slow_wdata),
-
-            .slow_ready(slow_ready),
-            .slow_rdata(slow_rdata)  
-        );
-
-
-        //==================================================
-        // bram instance
-        //==================================================
-        bram_ram #(15) u_bram_ram(
-            .clk(clk),
-            .rst(rst),
-            .ram_request(ram_request),
-            .ram_re(ram_re),
-            .ram_we(ram_we),
-            .ram_wstrb(ram_wstrb),
-            .ram_addr(ram_addr),
-            .ram_wdata(ram_wdata),
-            .ram_ready(ram_ready),
-            .ram_rdata(ram_rdata)
-        );
-
-        //==================================================
-        // gpio instance
-        //==================================================
-        gpio_mmio u_gpio_mmio(
-            .clk(clk),
-            .rst(rst),
-            .gpio_request(gpio_request),
-            .gpio_re(gpio_re),
-            .gpio_we(gpio_we),
-            .gpio_wstrb(gpio_wstrb),
-            .gpio_addr(gpio_addr),
-            .gpio_wdata(gpio_wdata),
-            .gpio_ready(gpio_ready),
-            .gpio_rdata(gpio_rdata),
-            .led(led)
-        );
-
-
-        //==================================================
-        // UART instance
-        //==================================================
-        uart u_uart(
-            .clk(clk),
-            .rst(rst),
-
-            // bus interface
-            .uart_request(uart_request),
-            .uart_re(uart_re),
-            .uart_we(uart_we),
-            .uart_wstrb(uart_wstrb),
-            .uart_addr(uart_addr),
-            .uart_wdata(uart_wdata),
-            .uart_ready(uart_ready),
-            .uart_rdata(uart_rdata),
-
-            // physical pins
-            .rx(rx),
-            .tx(tx)
-        );
-
-        //==================================================
-        // TIMER instance
-        //==================================================
-        timer_mimo u_timer_mimo(
-            .clk(clk),
-            .rst(rst),
-
-            .timer_request(timer_request),
-            .timer_re(timer_re),
-            .timer_we(timer_we),
-            .timer_wstrb(timer_wstrb),
-            .timer_addr(timer_addr),
-            .timer_wdata(timer_wdata),
-
-            .timer_ready(timer_ready),
-            .timer_rdata(timer_rdata),
-            .timer_irq(timer_irq)
-        );
-
-        //==================================================
-        // IRQ instance
-        //==================================================
-        irq_controller u_irq_controller(
-            .clk(clk),
-            .rst(rst),
-
-            // interrupt sources
-            .timer_irq(timer_irq),
-
-            // MMIO
-            .irq_request(irq_request),
-            .irq_re(irq_re),
-            .irq_we(irq_we),
-            .irq_wstrb(irq_wstrb),
-            .irq_addr(irq_addr),
-            .irq_wdata(irq_wdata),
-            .irq_ready(irq_ready),
-            .irq_rdata(irq_rdata),
-
-            // CPU
-            .cpu_irq(cpu_irq)
-        );
-
-        //==================================================
-        // SLOW instance   ***ERROR !!!! 写数据与ready不同步
-        //==================================================
-        slow_slave tb_u_slow_slave(
+    clk_rst_manage u_clk_rst_manage(
         .clk(clk),
         .rst(rst),
-        .req(slow_request),
-        .read(slow_re),
-        .write(slow_we),
-        .wstrb(slow_wstrb),
-        .addr(slow_addr),
-        .wdata(slow_wdata),
 
-        .rdata(slow_rdata),
-        .ready(slow_ready)
+        .clk_cpu_50(clk_cpu_50),
+        .clk_mig_160(clk_mig_160),
+        .clk_ref_200(clk_ref_200),
+
+        .cpu_rst_n(cpu_rst_n),
+        .mig_rst_n(mig_rst_n)
+    );
+
+    //==================================================
+    // CPU instance
+    //==================================================
+    
+    CPU_TOP u_CPU_TOP(
+        .clk(clk_cpu_50),
+        .rst(cpu_rst_n),
+        .cpu_rdataM(cpu_rdata), // 获得读数据
+        .cpu_en(cpu_en), // 分频信号
+        .cpu_readM(cpu_read), // 读使能
+        .cpu_writeM(cpu_write), // 写使能
+        .cpu_wstrbM(cpu_wstrb), // 字节写使能
+        .cpu_addrM(cpu_addr), // 读写地址
+        .cpu_wdataM(cpu_wdata), // 写数据
+        .irq(cpu_irq), // 中断使能
+        .cpu_ready(cpu_ready), // 事务结束
+        // instr
+        .rom_en(rom_en),
+        .pc_oF(pc_oF),
+        .instrIM(instr),
+        .cpu_requestM(cpu_request)
+    );
+
+
+    //==================================================
+    // SLAVE instance
+    //==================================================
+
+    slave u_slave(
+        .clk_cpu_50(clk_cpu_50),
+        .clk_mig_160(clk_mig_160),
+        .clk_ref_200(clk_ref_200),
+        .sys_rst_n(rst),  
+        .cpu_rst_n(cpu_rst_n),
+        .mig_rst_n(mig_rst_n),
+
+        .led(led),
+        
+        .tx(tx),
+        .rx(rx),
+
+        // CPU
+        .rom_en(rom_en),
+        .pc_oF(pc_oF),
+        .instr(instr),
+        .cpu_en(cpu_en),
+
+        .cpu_request(cpu_request),
+        .cpu_read(cpu_read),
+        .cpu_write(cpu_write),
+        .cpu_wstrb(cpu_wstrb),
+        .cpu_addr(cpu_addr),
+        .cpu_wdata(cpu_wdata),
+
+        .cpu_ready(cpu_ready),
+        .cpu_rdata(cpu_rdata),
+
+        .cpu_irq(cpu_irq),
+
+        // DDR
+        .ddr3_dq(ddr3_dq),
+        .ddr3_dqs_n(ddr3_dqs_n),
+        .ddr3_dqs_p(ddr3_dqs_p),
+
+        .ddr3_addr(ddr3_addr),
+        .ddr3_ba(ddr3_ba),
+        .ddr3_ras_n(ddr3_ras_n),
+        .ddr3_cas_n(ddr3_cas_n),
+        .ddr3_we_n(ddr3_we_n),
+        .ddr3_reset_n(ddr3_reset_n),
+        .ddr3_ck_p(ddr3_ck_p),
+        .ddr3_ck_n(ddr3_ck_n),
+        .ddr3_cke(ddr3_cke),
+        .ddr3_cs_n(ddr3_cs_n),
+        .ddr3_dm(ddr3_dm),
+        .ddr3_odt(ddr3_odt)
     );
 
 endmodule

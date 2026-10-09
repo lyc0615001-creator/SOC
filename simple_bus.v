@@ -102,7 +102,18 @@ module simple_bus(
         output     [31:0]  slow_wdata,
 
         input              slow_ready,
-        input      [31:0]  slow_rdata
+        input      [31:0]  slow_rdata,
+
+        //================ DDR slave =================
+        output             ddr_request,
+        output             ddr_re,
+        output             ddr_we,
+        output     [3:0]   ddr_wstrb,
+        output     [31:0]  ddr_addr,
+        output     [31:0]  ddr_wdata,
+
+        input              ddr_ready,
+        input      [31:0]  ddr_rdata
     );
 
     //==================================================
@@ -126,6 +137,9 @@ module simple_bus(
 
     // 0x1000_5000 ~ 0x1000_50FF
     wire sel_slow;
+
+    // 0x8000_0000 ~ 0x87FF_FFFF
+    wire sel_ddr;
     
 
     // 锁存当前事务的数据
@@ -153,6 +167,9 @@ module simple_bus(
 
     // slow
     assign sel_slow = (cpu_addr[31:8] == 24'h100050);
+
+    // ddr
+    assign sel_ddr = (cpu_addr[31:27] == 5'b10000);
 
     //==================================================
     // Write / Read request distribution
@@ -224,6 +241,17 @@ module simple_bus(
 
     assign slow_wdata = latched_wdata;
 
+    // ddr
+    assign ddr_re = cpu_en && sel_ddr && latched_read;
+
+    assign ddr_we = cpu_en && sel_ddr && latched_write;
+
+    assign ddr_wstrb = latched_wstrb;
+
+    assign ddr_addr = (latched_addr - 32'h8000_0000);
+
+    assign ddr_wdata = latched_wdata;
+
     //==================================================
     // Read source pipeline: M -> ***
     //=================================================
@@ -240,6 +268,9 @@ module simple_bus(
     localparam SEL_TIMER = 3'b100;
     localparam SEL_IRQ   = 3'b101;
     localparam SEL_SLOW  = 3'b110;
+    localparam SEL_DDR   = 3'b111;
+
+    wire transaction_done;
 
     always @(posedge clk or negedge rst) begin
         if (!rst) begin
@@ -265,6 +296,7 @@ module simple_bus(
                 else if (sel_timer) active_sel <= SEL_TIMER;
                 else if (sel_irq) active_sel <= SEL_IRQ;
                 else if (sel_slow) active_sel <= SEL_SLOW;
+                else if (sel_ddr) active_sel <= SEL_DDR;
                 else active_sel <= SEL_NONE;
              end else if (transaction_done) begin
                 busy <= 1'b0;
@@ -279,8 +311,7 @@ module simple_bus(
     assign timer_request = busy && active_sel == SEL_TIMER;
     assign irq_request   = busy && active_sel == SEL_IRQ;
     assign slow_request  = busy && active_sel == SEL_SLOW;
-
-    wire transaction_done;
+    assign ddr_request   = busy && active_sel == SEL_DDR;
 
     assign transaction_done = busy && cpu_ready;
 
@@ -312,6 +343,10 @@ module simple_bus(
             SEL_SLOW: begin
                 cpu_rdata = slow_rdata;
                 cpu_ready = slow_ready;
+            end
+            SEL_DDR: begin
+                cpu_rdata = ddr_rdata;
+                cpu_ready = ddr_ready;
             end
             SEL_NONE: begin
                 cpu_rdata = 32'd0;
