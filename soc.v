@@ -23,7 +23,7 @@
 
 module soc(
         input              clk,
-        input              rst,
+        input              rst_n,
         output    [3:0]    led,
         
         output             tx,
@@ -81,7 +81,7 @@ module soc(
 
     clk_rst_manage u_clk_rst_manage(
         .clk(clk),
-        .rst(rst),
+        .rst(rst_n),
 
         .clk_cpu_50(clk_cpu_50),
         .clk_mig_160(clk_mig_160),
@@ -123,7 +123,7 @@ module soc(
         .clk_cpu_50(clk_cpu_50),
         .clk_mig_160(clk_mig_160),
         .clk_ref_200(clk_ref_200),
-        .sys_rst_n(rst),  
+        .sys_rst_n(rst_n),  
         .cpu_rst_n(cpu_rst_n),
         .mig_rst_n(mig_rst_n),
 
