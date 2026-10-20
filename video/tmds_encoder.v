@@ -32,7 +32,7 @@ module tmds_encoder(
         output reg [9:0]   tmds
     );
 
-    // µÚÒ»½×¶Î£ºÉú³É[8:0] q_m
+    // ç¬¬ä¸€é˜¶æ®µï¼šç”Ÿæˆ[8:0] q_m
     reg [3:0] count_one;
     integer i;
 
@@ -57,7 +57,7 @@ module tmds_encoder(
         q_m[8] = ~choose_xnor; // 1-xor 0-xnor
     end
 
-    // µÚ¶ş½×¶Î£ºDC balance Éú³É[9:0] tmds
+    // ç¬¬äºŒé˜¶æ®µï¼šDC balance ç”Ÿæˆ[9:0] tmds
     reg [3:0] qm_count_one;
     integer k;
 
@@ -69,10 +69,10 @@ module tmds_encoder(
         end
     end
 
-    reg  signed [4:0] running_disparity; // ÀúÊ·
-    wire signed [4:0] balance; // µ±Ç°
+    reg  signed [4:0] running_disparity; // å†å²
+    wire signed [4:0] balance; // å½“å‰
     assign balance = 2 * qm_count_one - 8;
-    // ×´Ì¬ÅĞ¶Ï
+    // çŠ¶æ€åˆ¤æ–­
     wire normal;
     wire flip;
     

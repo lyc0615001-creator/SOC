@@ -57,7 +57,7 @@ module uart_tx(
             tx_data_buf <= 8'b0;
         end else begin
             case (tx_status)
-                IDLE: begin // ×¼±¸×´Ì¬
+                IDLE: begin // å‡†å¤‡çŠ¶æ€
                     if (tx_start) begin
                         // lock data
                         tx_data_buf <= tx_data;
@@ -69,7 +69,7 @@ module uart_tx(
                         tx <= 1'b0; // init next stage
                     end
                 end 
-                START: begin // ¼´½«¿ªÊ¼·¢ËÍÊý¾Ý
+                START: begin // å³å°†å¼€å§‹å‘é€æ•°æ®
                     if (tick_16x) begin
                         if (tx_cnt == T_LAST) begin
                             // modify tx_status
@@ -84,7 +84,7 @@ module uart_tx(
                         end
                     end
                 end
-                DATA: begin // ·¢ËÍÊý¾Ý
+                DATA: begin // å‘é€æ•°æ®
                     if (tick_16x) begin
                         if (tx_cnt == T_LAST) begin
                             tx_cnt <= 4'b0; // cnt reset
@@ -107,7 +107,7 @@ module uart_tx(
                     end
                     
                 end
-                STOP: begin // »Ö¸´Õý³££¬½øÈë×¼±¸
+                STOP: begin // æ¢å¤æ­£å¸¸ï¼Œè¿›å…¥å‡†å¤‡
                     if (tick_16x) begin
                         if (tx_cnt == T_LAST) begin
                             // modify tx_status

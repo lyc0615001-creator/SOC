@@ -10,9 +10,9 @@
 // Target Devices: 
 // Tool Versions: 
 // Description: 
-// 1. µØÖ·ÒëÂë
-// 2. Ğ´ÇëÇó·Ö·¢
-// 3. ¶ÁÊı¾İ·µ»ØÑ¡Ôñ
+// 1. åœ°å€è¯‘ç 
+// 2. å†™è¯·æ±‚åˆ†å‘
+// 3. è¯»æ•°æ®è¿”å›é€‰æ‹©
 // Dependencies: 
 // 
 // Revision:
@@ -120,7 +120,7 @@ module simple_bus(
     // M stage address decode
     //==================================================
 
-    // 0x0001_0000 ~ 0x0001_FFFF ÆäÖĞ0x0001_F000 ~ 0x0001_FFFF±£Áô¸øÕ»
+    // 0x0001_0000 ~ 0x0001_FFFF å…¶ä¸­0x0001_F000 ~ 0x0001_FFFFä¿ç•™ç»™æ ˆ
     wire sel_ram;
 
     // 0x1000_0000 ~ 0x1000_00FF
@@ -142,7 +142,7 @@ module simple_bus(
     wire sel_ddr;
     
 
-    // Ëø´æµ±Ç°ÊÂÎñµÄÊı¾İ
+    // é”å­˜å½“å‰äº‹åŠ¡çš„æ•°æ®
     reg [31:0] latched_addr;
     reg [31:0] latched_wdata;
     reg [3:0]  latched_wstrb;

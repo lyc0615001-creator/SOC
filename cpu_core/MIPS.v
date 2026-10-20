@@ -64,7 +64,7 @@ module MIPS (
         .bubble_dm(bubble_dm)
     );
 
-    // ÈÃvalid Ö»ÉúĞ§ÔÚ´¦ÀíÆ÷ÄÚ²¿
+    // è®©valid åªç”Ÿæ•ˆåœ¨å¤„ç†å™¨å†…éƒ¨
     assign mem_write_en_effM = validM && mem_write_enM;
     assign mem_read_en_effM = validM && mem_read_enM;
     assign rom_en = cpu_en && ~hold_fim;

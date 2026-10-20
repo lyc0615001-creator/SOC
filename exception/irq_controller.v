@@ -41,8 +41,8 @@ module irq_controller(
         output        cpu_irq
     );
 
-    // 0x10003000  PENDING   ж╩╤а
-    // 0x10003004  MASK      ╤ап╢
+    // 0x10003000  PENDING   Е▐╙Х╞╩
+    // 0x10003004  MASK      Х╞╩Е├≥
     localparam  PENDING =  8'h00;
     localparam  MASK    =  8'h04;
 

@@ -152,7 +152,7 @@ module hdmi_tx(
         .I(serial_out_r)      // Buffer input
     );
 
-    //**********Ê±ÖÓ***********
+    //**********æ—¶é’Ÿ***********
     wire tmds_clk_se;
 
     ODDR #(

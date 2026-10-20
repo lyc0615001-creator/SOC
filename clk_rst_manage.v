@@ -35,7 +35,7 @@ module clk_rst_manage(
         output             mig_rst_n
     );
 
-    wire mig_rst_n;  // DDR-mig复位信号，低有效
+    wire mig_rst_n;  // DDR-mig澶嶄綅淇″彿锛屼綆鏈夋晥
 
     assign mig_rst_n = rst && clk_locked;
 

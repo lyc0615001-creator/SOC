@@ -1,22 +1,22 @@
 module CPU_TOP (
     input clk,
     input rst,
-    input [31:0] cpu_rdataM, // »ñµÃ¶ÁÊı¾İ
-    output cpu_en, // ·ÖÆµĞÅºÅ
-    output cpu_readM, // ¶ÁÊ¹ÄÜ
-    output cpu_writeM, // Ğ´Ê¹ÄÜ
-    output [3:0] cpu_wstrbM, // ×Ö½ÚĞ´Ê¹ÄÜ
-    output wire [31:0] cpu_addrM, // ¶ÁµØÖ·
-    output wire [31:0] cpu_wdataM, // Ğ´Êı¾İ
+    input [31:0] cpu_rdataM, // è·å¾—è¯»æ•°æ®
+    output cpu_en, // åˆ†é¢‘ä¿¡å·
+    output cpu_readM, // è¯»ä½¿èƒ½
+    output cpu_writeM, // å†™ä½¿èƒ½
+    output [3:0] cpu_wstrbM, // å­—èŠ‚å†™ä½¿èƒ½
+    output wire [31:0] cpu_addrM, // è¯»åœ°å€
+    output wire [31:0] cpu_wdataM, // å†™æ•°æ®
     
-    output wire rom_en, // Ö¸Áî¶ÁÊ¹ÄÜ
-    output wire [31:0] pc_oF, // Ö¸Áî¶ÁµØÖ·
-    input [31:0] instrIM, //»ñµÃÖ¸Áî
+    output wire rom_en, // æŒ‡ä»¤è¯»ä½¿èƒ½
+    output wire [31:0] pc_oF, // æŒ‡ä»¤è¯»åœ°å€
+    input [31:0] instrIM, //è·å¾—æŒ‡ä»¤
 
-    input  irq, // ÖĞ¶Ï
+    input  irq, // ä¸­æ–­
 
-    output cpu_requestM, // cpuÓĞĞ§ÇëÇó
-    input  cpu_ready     // ÇëÇó´¦Àí¾ÍĞ÷
+    output cpu_requestM, // cpuæœ‰æ•ˆè¯·æ±‚
+    input  cpu_ready     // è¯·æ±‚å¤„ç†å°±ç»ª
   );
 
     localparam T_clk = 1;
@@ -30,7 +30,7 @@ module CPU_TOP (
     assign cpu_wdataM = DM_data_iM;
     assign cpu_wstrbM = cpu_writeM ? 4'b1111 : 4'b0000;
 
-    // ·Ç¹Ì¶¨ÖÜÆÚÑÓ³Ù
+    // éå›ºå®šå‘¨æœŸå»¶è¿Ÿ
     wire mem_accessM, bus_wait;
     assign mem_accessM = mem_read_en_effM || mem_write_en_effM;
     assign cpu_requestM = mem_accessM;
@@ -53,7 +53,7 @@ module CPU_TOP (
       .DM_data_iM(DM_data_iM)
     );
 
-    // ·ÖÆµÆ÷
+    // åˆ†é¢‘å™¨
     cpu_cpu_en u_cpu_cpu_en(
         .clk(clk),
         .rst(rst),

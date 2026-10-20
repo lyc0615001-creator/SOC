@@ -19,13 +19,13 @@ module Datapath (
     output bubble_e, bubble_dm
 );
 
-    // F½×¶Î±äÁ¿
+    // Fé˜¶æ®µå˜é‡
     wire [31:0] pc_plus4F;
 
-     // IM½×¶Î±äÁ¿
+     // IMé˜¶æ®µå˜é‡
     wire [31:0] pc_plus4IM;
     
-    // D½×¶Î±äÁ¿
+    // Dé˜¶æ®µå˜é‡
     wire zeroD, branch_selD, jump_selD, jr_selD;
     wire [4:0] rsD, rtD, rdD, shamtD;
     wire [15:0] lw_offsetD;
@@ -33,7 +33,7 @@ module Datapath (
     wire [31:0] imm_extD, imm_ext_sl2D, jump_sl2D;
     wire [31:0] RF_data_o1D, RF_data_o2D;
 
-    // E½×¶Î±äÁ¿
+    // Eé˜¶æ®µå˜é‡
     wire [4:0] RF_address3E, rsE, rtE, rdE, shamtE;
     wire [31:0] imm_extE, pc_plus4E;
     wire [31:0] DM_data_iE, alu_src_i2E, alu_resultE;
@@ -41,42 +41,42 @@ module Datapath (
     wire [31:0] cp0_rdataE, early_resultE;
     wire cp0_weE;
 
-    // M½×¶Î±äÁ¿
+    // Mé˜¶æ®µå˜é‡
     wire [4:0] RF_address3M;
     wire [31:0] early_resultM;
 
-    // DM½×¶Î±äÁ¿
+    // DMé˜¶æ®µå˜é‡
     wire [4:0] RF_address3DM;
     wire [31:0] RF_data_iDM, early_resultDM, DM_data_oDM;
     wire RF_data_srcDM;
 
-    // W½×¶Î±äÁ¿
+    // Wé˜¶æ®µå˜é‡
     wire [4:0] RF_address3W;
     wire [31:0] RF_data_iW;
 
-    // HAZARD ±äÁ¿
+    // HAZARD å˜é‡
     wire [1:0] forwardAD, forwardBD;
     wire [31:0] RF_data_o1_mux4D, RF_data_o2_mux4D;
     wire redirectD, stall;
     wire [31:0] ForwardValueE, ForwardValueM, ForwardValueDM;
 
-    // Valid_pipeline ±äÁ¿
+    // Valid_pipeline å˜é‡
     wire validIM, validD, validE, validM, validDM, validW;
     wire [5:0] valid_signs;
     wire rf_write_enW;
 
-    // Ç°µİE±äÁ¿
+    // å‰é€’Eå˜é‡
     wire [31:0] alu_src_i1E, alu_src_i0E;
     wire forwardAE, forwardBE;
 
-    // ÖĞ¶Ï´¦Àí±äÁ¿
+    // ä¸­æ–­å¤„ç†å˜é‡
     wire status_ie, status_exl;
     wire interrupt_acceptD, eret_selD;
     wire [2:0] pc_src_selD;
     wire [31:0] pc_eretD;
     wire [31:0] cp0_status;
 
-    // Á÷Ë®ÏßÔİÍ£±äÁ¿
+    // æµæ°´çº¿æš‚åœå˜é‡
     wire  hold_pc, hold_imd;
 
     assign rsD = instrD[25:21];
@@ -88,7 +88,7 @@ module Datapath (
     assign DM_data_iE = alu_src_i0E;
 
 
-    // =======ÖĞ¶Ï´¦Àí && pc_src=======
+    // =======ä¸­æ–­å¤„ç† && pc_src=======
     assign status_ie = cp0_status[0];
     assign status_exl = cp0_status[1];
     assign interrupt_acceptD = irq && status_ie && !status_exl && validD && !(validE && cp0_write_enE) && !bus_wait;
@@ -118,9 +118,9 @@ module Datapath (
 
 
 
-    // =========Ö¸ÁîÖ´ĞĞÄ£¿é===========
+    // =========æŒ‡ä»¤æ‰§è¡Œæ¨¡å—===========
 
-    // pc Ò»¼¶ÑÓ³Ù
+    // pc ä¸€çº§å»¶è¿Ÿ
     pc u_pc(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_pc), .pc_i(pc_iD), .pc_o(pc_oF));
     
     adder u_adder_plus4(
@@ -129,12 +129,12 @@ module Datapath (
         .add_o(pc_plus4F)
         );
     
-    // F -> IM Ö¸Áî´æ´¢Æ÷ÑÓ³ÙÍ¬²½
-    // Í¬²½±äÁ¿ pc_plus4F
+    // F -> IM æŒ‡ä»¤å­˜å‚¨å™¨å»¶è¿ŸåŒæ­¥
+    // åŒæ­¥å˜é‡ pc_plus4F
     flopenrc #(32) u_flopenrc_pc_plus4IM(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_fim), .clear(1'b0), .din(pc_plus4F), .dout(pc_plus4IM));
 
-    // IM -> D Á÷Ë®Ïß´¥·¢Æ÷
-    // ÑÓ³Ù±äÁ¿ instrIM pc_plus4IM
+    // IM -> D æµæ°´çº¿è§¦å‘å™¨
+    // å»¶è¿Ÿå˜é‡ instrIM pc_plus4IM
     flopenrc #(32) u_flopenrc_instrD(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_imd), .clear(1'b0), .din(instrIM), .dout(instrD));
     flopenrc #(32) u_flopenrc_pc_plus4D(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_imd), .clear(1'b0), .din(pc_plus4IM), .dout(pc_plus4D));
 
@@ -153,8 +153,8 @@ module Datapath (
         );
 
 
-    // D -> E Á÷Ë®Ïß´¥·¢Æ÷
-    // ÑÓ³Ù±äÁ¿ RF_data_o1_mux4D RF_data_o2_mux4D imm_extD rsD rtD rdD pc_plus4D shamtD
+    // D -> E æµæ°´çº¿è§¦å‘å™¨
+    // å»¶è¿Ÿå˜é‡ RF_data_o1_mux4D RF_data_o2_mux4D imm_extD rsD rtD rdD pc_plus4D shamtD
     flopenrc #(32) u_flopenrc_RF_data_o1_mux4E(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_de), .clear(bubble_e), .din(RF_data_o1_mux4D), .dout(RF_data_o1_mux4E));
     flopenrc #(32) u_flopenrc_RF_data_o2_mux4E(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_de), .clear(bubble_e), .din(RF_data_o2_mux4D), .dout(RF_data_o2_mux4E));
     flopenrc #(32) u_flopenrc_sign_extE(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_de), .clear(bubble_e), .din(imm_extD), .dout(imm_extE));
@@ -166,21 +166,21 @@ module Datapath (
 
     flopenrc #(32) u_flopenrc_pc_plus4E(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_de), .clear(bubble_e), .din(pc_plus4D), .dout(pc_plus4E));
 
-    // E -> M Á÷Ë®Ïß´¥·¢Æ÷  
-    // ÑÓ³Ù±äÁ¿  DM_data_iE RF_address3E early_resultE
+    // E -> M æµæ°´çº¿è§¦å‘å™¨  
+    // å»¶è¿Ÿå˜é‡  DM_data_iE RF_address3E early_resultE
     flopenrc #(32) u_flopenrc_early_resultM(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_em), .clear(1'b0), .din(early_resultE), .dout(early_resultM));
     flopenrc #(32) u_flopenrc_DM_data_iM(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_em), .clear(1'b0), .din(DM_data_iE), .dout(DM_data_iM));
     flopenrc #(5) u_flopenrc_RF_address3M(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_em), .clear(1'b0), .din(RF_address3E), .dout(RF_address3M));
 
-    // M -> DM Êı¾İ´æ´¢Æ÷ÑÓ³ÙÍ¬²½
-    // ÑÓ³Ù±äÁ¿  RF_address3M  early_resultM DM_data_oM
+    // M -> DM æ•°æ®å­˜å‚¨å™¨å»¶è¿ŸåŒæ­¥
+    // å»¶è¿Ÿå˜é‡  RF_address3M  early_resultM DM_data_oM
     flopenrc #(32) u_flopenrc_early_resultDM(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(bubble_dm), .din(early_resultM), .dout(early_resultDM));
     flopenrc #(5) u_flopenrc_RF_address3DM(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(bubble_dm), .din(RF_address3M), .dout(RF_address3DM));
 
     flopenrc #(32) u_flopenrc_DM_data_oDM(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(bubble_dm), .din(DM_data_oM), .dout(DM_data_oDM));
 
-    // DM -> W Á÷Ë®Ïß´¥·¢Æ÷
-    // ÑÓ³Ù±äÁ¿ RF_address3DM RF_data_iDM
+    // DM -> W æµæ°´çº¿è§¦å‘å™¨
+    // å»¶è¿Ÿå˜é‡ RF_address3DM RF_data_iDM
     flopenrc #(5) u_flopenrc_RF_address3W(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(RF_address3DM), .dout(RF_address3W));
     flopenrc #(32) u_flopenrc_RF_data_iW(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(RF_data_iDM), .dout(RF_data_iW));
 
@@ -270,7 +270,7 @@ module Datapath (
 
     // ====jr====
     assign pc_jrD = RF_data_o1_mux4D;
-    assign jr_selD = validD && !hold_pc && jrD;  // ÊµÎªstall && bus_wait
+    assign jr_selD = validD && !hold_pc && jrD;  // å®ä¸ºstall && bus_wait
 
     // ====mfc0 mtc0====
     assign cp0_weE = cp0_write_enE && validE;
@@ -326,7 +326,7 @@ module Datapath (
         .redirectD(redirectD)
     );
 
-    // Õë¶ÔRºÍjalµÄÊı¾İÃ°ÏÕ£¬ÊÇ·ñÇ°µİÓÉforwardAD/BDÅĞ¶Ï£¬Ç°µİÊı¾İÓĞassignÓï¾äÅĞ¶Ï
+    // é’ˆå¯¹Rå’Œjalçš„æ•°æ®å†’é™©ï¼Œæ˜¯å¦å‰é€’ç”±forwardAD/BDåˆ¤æ–­ï¼Œå‰é€’æ•°æ®æœ‰assignè¯­å¥åˆ¤æ–­
 
     assign ForwardValueE = early_resultE;
     assign ForwardValueM = early_resultM;
@@ -371,7 +371,7 @@ module Datapath (
         .bubble_dm(bubble_dm)
     );
     
-    // lw-use Ç°µİE
+    // lw-use å‰é€’E
     mux2 #(32) u_mux2_alu_src1 (
         .data_i1(RF_data_iDM), 
         .data_i2(RF_data_o1_mux4E), 

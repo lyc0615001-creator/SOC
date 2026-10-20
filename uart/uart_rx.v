@@ -89,7 +89,7 @@ module uart_rx(
                 START: begin
                     if (tick_16x) begin
                         if (rx_cnt == HALF_T_LAST) begin
-                            // °ë¸ö·ÖÆµÖÜÆÚºó£¬ÅĞ¶ÏÊÇ·ñÒÀ¾ÉÊÇ0
+                            // åŠä¸ªåˆ†é¢‘å‘¨æœŸåï¼Œåˆ¤æ–­æ˜¯å¦ä¾æ—§æ˜¯0
                             if (rx_sync == 1'b0) begin
                                 // modify rx_status 
                                 rx_status <= DATA;

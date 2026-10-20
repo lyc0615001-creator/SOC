@@ -24,9 +24,9 @@ module slave(
         input              clk_cpu_50,
         input              clk_mig_160,
         input              clk_ref_200,
-        input              sys_rst_n,  // Ô­Ê¼¸´Î»
-        input              cpu_rst_n,  // CPU¸´Î»
-        input              mig_rst_n,  // mig¸´Î»
+        input              sys_rst_n,  // åŸå§‹å¤ä½
+        input              cpu_rst_n,  // CPUå¤ä½
+        input              mig_rst_n,  // migå¤ä½
         output    [3:0]    led,
         
         output             tx,
@@ -356,7 +356,7 @@ module slave(
         );
 
         //==================================================
-        // SLOW instance   ***ERROR !!!! Ğ´Êı¾İÓëready²»Í¬²½
+        // SLOW instance   ***ERROR !!!! å†™æ•°æ®ä¸readyä¸åŒæ­¥
         //==================================================
         slow_slave tb_u_slow_slave(
             .clk(clk_cpu_50),
@@ -388,7 +388,7 @@ module slave(
             .ddr_we(ddr_we),
 
             .ddr_wstrb(ddr_wstrb),
-            .ddr_addr(ddr_addr),  // ¿ÉÒÔËø´æaddr
+            .ddr_addr(ddr_addr),  // å¯ä»¥é”å­˜addr
             .ddr_wdata(ddr_wdata),
             .ddr_ready(ddr_ready),
             .ddr_rdata(ddr_rdata),

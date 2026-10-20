@@ -42,7 +42,7 @@ module timer_mimo(
     localparam STATUS  = 8'h0c;
 
     //========================
-    // ×´Ì¬¼Ä´æÆ÷
+    // çŠ¶æ€å¯„å­˜å™¨
     //========================
     reg [31:0] count;
     reg [31:0] compare;
@@ -101,7 +101,7 @@ module timer_mimo(
     reg pending_next;
 
     always @(*) begin
-        // Ä¬ÈÏ±£³Ö
+        // é»˜è®¤ä¿æŒ
         count_next    = count;
         compare_next  = compare;
         timer_en_next = timer_en;
@@ -109,7 +109,7 @@ module timer_mimo(
         pending_next  = pending;
 
         //=========================
-        // 1. Timer¼ÆÊı
+        // 1. Timerè®¡æ•°
         //=========================
         if (timer_en) begin
             if (timer_match) begin
@@ -120,7 +120,7 @@ module timer_mimo(
         end
 
         //=========================
-        // 2. MMIOĞ´
+        // 2. MMIOå†™
         //=========================
         if (wr_ctrl) begin
             timer_en_next = timer_wdata[0];

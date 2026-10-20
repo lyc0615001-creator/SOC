@@ -25,7 +25,7 @@ module mig_transaction_engine(
         input  wire         ui_clk_sync_rst,
         input  wire         init_calib_complete,
 
-        // ÉÏ²ãÇëÇó
+        // ä¸Šå±‚è¯·æ±‚
         input  wire         req_valid,
         input  wire         req_write,      // 1=write, 0=read
         input  wire [27:0]  req_addr,
@@ -34,7 +34,7 @@ module mig_transaction_engine(
 
         output wire         req_ready,
 
-        // ÉÏ²ãÏìÓ¦
+        // ä¸Šå±‚å“åº”
         output reg          rsp_done,
         output reg  [127:0] rsp_rdata,
 
