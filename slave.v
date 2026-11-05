@@ -146,6 +146,19 @@ module slave(
         wire              ddr_ready;
         wire      [31:0]  ddr_rdata;
 
+        //================ NPU slave =================
+        wire              npu_request;
+        wire              npu_re;
+        wire              npu_we;
+        wire      [31:0]  npu_addr;
+        wire      [3:0]   npu_wstrb;
+        wire      [31:0]  npu_wdata;
+
+        wire              npu_ready;
+        wire      [31:0]  npu_rdata;
+
+        wire              npu_irq;
+
 
         //==================================================
         // instruction instance
@@ -252,7 +265,18 @@ module slave(
             .ddr_wdata(ddr_wdata),
 
             .ddr_ready(ddr_ready),
-            .ddr_rdata(ddr_rdata)
+            .ddr_rdata(ddr_rdata),
+
+            //================ SLOW slave =================
+            .npu_request(npu_request),
+            .npu_re(npu_re),
+            .npu_we(npu_we),
+            .npu_wstrb(npu_wstrb),
+            .npu_addr(npu_addr),
+            .npu_wdata(npu_wdata),
+
+            .npu_ready(npu_ready),
+            .npu_rdata(npu_rdata)
         );
 
 
@@ -340,6 +364,7 @@ module slave(
 
             // interrupt sources
             .timer_irq(timer_irq),
+            .npu_irq(npu_irq),
 
             // MMIO
             .irq_request(irq_request),
@@ -412,5 +437,24 @@ module slave(
             .ddr3_odt(ddr3_odt)
         );
 
+        //==================================================
+        // NPU instance
+        //==================================================
+        npu_slave u_npu_slave(
+            .clk(clk_cpu_50),
+            .rst_n(cpu_rst_n),
+
+            .npu_request(npu_request),
+            .npu_re(npu_re),
+            .npu_we(npu_we),
+            .npu_wstrb(npu_wstrb),
+            .npu_addr(npu_addr),
+            .npu_wdata(npu_wdata),
+
+            .npu_ready(npu_ready),
+            .npu_rdata(npu_rdata),
+
+            .npu_irq(npu_irq)
+        );
 
 endmodule

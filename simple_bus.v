@@ -113,7 +113,18 @@ module simple_bus(
         output     [31:0]  ddr_wdata,
 
         input              ddr_ready,
-        input      [31:0]  ddr_rdata
+        input      [31:0]  ddr_rdata,
+
+        //================ NPU slave =================
+        output             npu_request,
+        output             npu_re,
+        output             npu_we,
+        output     [3:0]   npu_wstrb,
+        output     [31:0]  npu_addr,
+        output     [31:0]  npu_wdata,
+
+        input              npu_ready,
+        input      [31:0]  npu_rdata
     );
 
     //==================================================
@@ -137,6 +148,9 @@ module simple_bus(
 
     // 0x1000_5000 ~ 0x1000_50FF
     wire sel_slow;
+
+    // 0x4000_0000 ~ 0x4000_0FFF
+    wire sel_npu;
 
     // 0x8000_0000 ~ 0x87FF_FFFF
     wire sel_ddr;
@@ -167,6 +181,9 @@ module simple_bus(
 
     // slow
     assign sel_slow = (cpu_addr[31:8] == 24'h100050);
+
+    // npu
+    assign sel_npu = (cpu_addr[31:28] == 4'h4);
 
     // ddr
     assign sel_ddr = (cpu_addr[31:27] == 5'b10000);
@@ -241,6 +258,17 @@ module simple_bus(
 
     assign slow_wdata = latched_wdata;
 
+    // npu
+    assign npu_re = cpu_en && sel_npu && latched_read;
+
+    assign npu_we = cpu_en && sel_npu && latched_write;
+
+    assign npu_wstrb = latched_wstrb;
+
+    assign npu_addr = (latched_addr - 32'h4000_0000);
+
+    assign npu_wdata = latched_wdata;
+
     // ddr
     assign ddr_re = cpu_en && sel_ddr && latched_read;
 
@@ -259,16 +287,17 @@ module simple_bus(
     reg busy;
 
     // 000 none 001 RAM 010 GPIO 011 UART 100 TIMER 101 IRQ 110 SLOW
-    reg [2:0] active_sel;
+    reg [3:0] active_sel;
 
-    localparam SEL_NONE  = 3'b000;
-    localparam SEL_RAM   = 3'b001;
-    localparam SEL_GPIO  = 3'b010;
-    localparam SEL_UART  = 3'b011;
-    localparam SEL_TIMER = 3'b100;
-    localparam SEL_IRQ   = 3'b101;
-    localparam SEL_SLOW  = 3'b110;
-    localparam SEL_DDR   = 3'b111;
+    localparam SEL_NONE  = 4'b0000;
+    localparam SEL_RAM   = 4'b0001;
+    localparam SEL_GPIO  = 4'b0010;
+    localparam SEL_UART  = 4'b0011;
+    localparam SEL_TIMER = 4'b0100;
+    localparam SEL_IRQ   = 4'b0101;
+    localparam SEL_SLOW  = 4'b0110;
+    localparam SEL_NPU   = 4'b0111;
+    localparam SEL_DDR   = 4'b1000;
 
     wire transaction_done;
 
@@ -279,7 +308,7 @@ module simple_bus(
             latched_wstrb <= 4'd0;
             latched_read  <= 1'd0;
             latched_write <= 1'd0;
-            active_sel    <= 3'd0;
+            active_sel    <= 4'd0;
             busy          <= 1'b0;
         end else begin
              if (!busy && cpu_request) begin
@@ -296,6 +325,7 @@ module simple_bus(
                 else if (sel_timer) active_sel <= SEL_TIMER;
                 else if (sel_irq) active_sel <= SEL_IRQ;
                 else if (sel_slow) active_sel <= SEL_SLOW;
+                else if (sel_npu) active_sel <= SEL_NPU;
                 else if (sel_ddr) active_sel <= SEL_DDR;
                 else active_sel <= SEL_NONE;
              end else if (transaction_done) begin
@@ -311,6 +341,7 @@ module simple_bus(
     assign timer_request = busy && active_sel == SEL_TIMER;
     assign irq_request   = busy && active_sel == SEL_IRQ;
     assign slow_request  = busy && active_sel == SEL_SLOW;
+    assign npu_request   = busy && active_sel == SEL_NPU;
     assign ddr_request   = busy && active_sel == SEL_DDR;
 
     assign transaction_done = busy && cpu_ready;
@@ -343,6 +374,10 @@ module simple_bus(
             SEL_SLOW: begin
                 cpu_rdata = slow_rdata;
                 cpu_ready = slow_ready;
+            end
+            SEL_NPU: begin
+                cpu_rdata = npu_rdata;
+                cpu_ready = npu_ready;
             end
             SEL_DDR: begin
                 cpu_rdata = ddr_rdata;

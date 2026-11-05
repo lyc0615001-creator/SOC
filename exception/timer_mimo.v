@@ -135,11 +135,11 @@ module timer_mimo(
             compare_next = timer_wdata;
         end
 
-        if (timer_clear) begin
-            pending_next = 1'b0;
-        end else if (timer_match) begin
+        if (timer_match) begin
             pending_next = 1'b1;
-        end   
+        end else if (timer_clear) begin
+            pending_next = 1'b0;
+        end  
     end
 
     //================================================
