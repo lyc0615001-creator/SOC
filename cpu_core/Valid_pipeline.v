@@ -37,12 +37,12 @@ module Valid_pipeline(
         output       bubble_e,
         output       bubble_dm
     ); 
-    // ĞÂÔövalid¼Ü¹¹È¡´úflush
-    // Ô­Òò£ºflush¹ıÓÚÒÀÀµµ±Ç°Ä¬ÈÏopcode£¬¿ØÖÆ½ÏÎª¸´ÔÓ
-    // ½â¾ö´ëÊ©£ºÓÃvalidÇø·ÖÓĞĞ§ºÍÎŞĞ§Ö¸Áî£¬ÔÚ½á¹ûÉÏ½øĞĞ¿ØÖÆ
+    // æ–°å¢validæ¶æ„å–ä»£flush
+    // åŸå› ï¼šflushè¿‡äºä¾èµ–å½“å‰é»˜è®¤opcodeï¼Œæ§åˆ¶è¾ƒä¸ºå¤æ‚
+    // è§£å†³æªæ–½ï¼šç”¨validåŒºåˆ†æœ‰æ•ˆå’Œæ— æ•ˆæŒ‡ä»¤ï¼Œåœ¨ç»“æœä¸Šè¿›è¡Œæ§åˆ¶
 
-    // ²úÉúÌõ¼ş£ºÓëstallºÍredirectDÓĞ¹Ø + interrupt_acceptD
-    // ÉúĞ§Ìõ¼ş£º
+    // äº§ç”Ÿæ¡ä»¶ï¼šä¸stallå’ŒredirectDæœ‰å…³ + interrupt_acceptD
+    // ç”Ÿæ•ˆæ¡ä»¶ï¼š
 
     localparam V_IM = 5;
     localparam V_D  = 4;

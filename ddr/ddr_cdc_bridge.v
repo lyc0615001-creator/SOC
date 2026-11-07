@@ -121,7 +121,7 @@ module ddr_cdc_bridge(
     // cpu domain
     always @(posedge cpu_clk) begin
         if (!cpu_rstn) begin
-            // IDLE½×¶Î
+            // IDLEé˜¶æ®µ
             bus_addr  <= 28'd0;
             bus_wdata <= 128'd0;
             bus_wmask <= 16'hffff;
@@ -131,7 +131,7 @@ module ddr_cdc_bridge(
 
             bus_state <= BUS_IDLE;
 
-            // WAIT½×¶Î
+            // WAITé˜¶æ®µ
             rsp_sync1 <= 1'b0;
             rsp_sync2 <= 1'b0;
 
@@ -144,7 +144,7 @@ module ddr_cdc_bridge(
             case (bus_state)
                 BUS_IDLE: begin
                     if (bus_fire) begin
-                        // ÇÐ»»×´Ì¬+Ëø´æÊý¾Ý
+                        // åˆ‡æ¢çŠ¶æ€+é”å­˜æ•°æ®
                         bus_state <= BUS_WAIT;
 
                         bus_addr  <= cpu_addr;

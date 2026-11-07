@@ -24,7 +24,7 @@ module alu(
     input [3:0] alu_control,
     input [31:0] alu_data_i1,
     input [31:0] alu_data_i2,
-    input [4:0] shamt, //ÒÆÎ»Ö¸Áî
+    input [4:0] shamt, //ç§»ä½æŒ‡ä»¤
     output [31:0] alu_data_o
     );
 

@@ -82,7 +82,7 @@ module uart_mmio(
                 tx_start <= 1'b1;
             end
 
-            // uart rx ½ÓÊÕÐÂÊý¾Ý
+            // uart rx æŽ¥æ”¶æ–°æ•°æ®
             if (rx_valid) begin
                 rx_ready <= 1'b1;
                 rx_data_reg <= rx_data;

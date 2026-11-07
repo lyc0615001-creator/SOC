@@ -27,7 +27,7 @@ module Controller (
     wire [3:0] alu_controlD;
     wire cp0_write_enD;
 
-    // Ö÷¿ØÖÆĞÅºÅÒëÂë
+    // ä¸»æ§åˆ¶ä¿¡å·è¯‘ç 
     main_decode u_main_decode(
         .op_code(op_code),
         .funct(funct),
@@ -48,14 +48,14 @@ module Controller (
         branch_neD,
         cp0_write_enD} = sign;
 
-    // alu¿ØÖÆĞÅºÅÒëÂë
+    // aluæ§åˆ¶ä¿¡å·è¯‘ç 
     alu_decode u_alu_decode(
         .aluop(aluop),
         .funct(funct),
         .alu_control(alu_controlD)
     );
 
-    // used_rs used_rtÃ°ÏÕ¸¨ÖúĞÅºÅÒëÂë
+    // used_rs used_rtå†’é™©è¾…åŠ©ä¿¡å·è¯‘ç 
     assist_decode u_assist_decode(
         .op_code(op_code),
         .funct(funct),
@@ -63,11 +63,11 @@ module Controller (
         .used_rt(used_rtD)
     );
 
-    // Õë¶ÔjrÖ¸ÁîµÄÌØÊâ´¦Àí
+    // é’ˆå¯¹jræŒ‡ä»¤çš„ç‰¹æ®Šå¤„ç†
     assign jrD = ((op_code == 6'b000000) && (funct == 6'b001000)) ? 1'b1 : 1'b0;
     assign reg_write_enD = jrD ? 1'b0 : reg_write_en_tempD;
 
-    // Õë¶ÔeretÖ¸ÁîµÄÌØÊâ´¦Àí
+    // é’ˆå¯¹eretæŒ‡ä»¤çš„ç‰¹æ®Šå¤„ç†
     assign eretD = (op_code == 6'b010000) && (rs == 5'b10000) && (funct == 6'b011000);
   
     // cp0_write_en

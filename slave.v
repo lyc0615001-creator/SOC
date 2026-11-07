@@ -24,9 +24,9 @@ module slave(
         input              clk_cpu_50,
         input              clk_mig_160,
         input              clk_ref_200,
-        input              sys_rst_n,  // Ô­Ê¼¸´Î»
-        input              cpu_rst_n,  // CPU¸´Î»
-        input              mig_rst_n,  // mig¸´Î»
+        input              sys_rst_n,  // åŸå§‹å¤ä½
+        input              cpu_rst_n,  // CPUå¤ä½
+        input              mig_rst_n,  // migå¤ä½
         output    [3:0]    led,
         
         output             tx,
@@ -49,6 +49,11 @@ module slave(
 
         output             cpu_irq,
 
+        // æ€§èƒ½åˆ†æ
+        input              cpu_instr_event,
+        input              cpu_stall_event,
+
+        // ddr
         inout       [15:0] ddr3_dq,
         inout       [1:0]  ddr3_dqs_n,
         inout       [1:0]  ddr3_dqs_p,
@@ -66,6 +71,16 @@ module slave(
         output      [1:0]  ddr3_dm,
         output      [0:0]  ddr3_odt
     );
+        //================ Arbiter =================
+        wire              arbiter_request;
+        wire              arbiter_re;
+        wire              arbiter_we;
+        wire      [3:0]   arbiter_wstrb;
+        wire      [31:0]  arbiter_addr;
+        wire      [31:0]  arbiter_wdata;
+
+        wire              arbiter_ready;
+        wire      [31:0]  arbiter_rdata;
 
         //================ BRAM slave =================
         wire              ram_request;
@@ -146,6 +161,52 @@ module slave(
         wire              ddr_ready;
         wire      [31:0]  ddr_rdata;
 
+        //================ NPU slave =================
+        wire              npu_request;
+        wire              npu_re;
+        wire              npu_we;
+        wire      [31:0]  npu_addr;
+        wire      [3:0]   npu_wstrb;
+        wire      [31:0]  npu_wdata;
+
+        wire              npu_ready;
+        wire      [31:0]  npu_rdata;
+
+        wire              npu_irq;
+
+        ///================ DMA slave =================
+        wire              dma_s_request;
+        wire              dma_s_re;
+        wire              dma_s_we;
+        wire      [3:0]   dma_s_wstrb;
+        wire      [7:0]   dma_s_addr;
+        wire      [31:0]  dma_s_wdata;
+
+        wire              dma_s_ready;
+        wire      [31:0]  dma_s_rdata;
+
+        wire              dma_m_request;
+        wire              dma_m_re;
+        wire              dma_m_we;
+        wire      [3:0]   dma_m_wstrb;
+        wire      [31:0]  dma_m_addr;
+        wire      [31:0]  dma_m_wdata;
+
+        wire              dma_m_ready;
+        wire      [31:0]  dma_m_rdata;
+
+        wire              dma_irq;
+
+        //================ PERF slave =================
+        wire              perf_request;
+        wire              perf_re;
+        wire              perf_we;
+        wire      [31:0]  perf_addr;
+        wire      [3:0]   perf_wstrb;
+        wire      [31:0]  perf_wdata;
+
+        wire              perf_ready;
+        wire      [31:0]  perf_rdata;
 
         //==================================================
         // instruction instance
@@ -158,15 +219,12 @@ module slave(
         );
 
         //==================================================
-        // bus instance
+        // Arbiter
         //==================================================
-
-        simple_bus u_simple_bus(
+        arbiter u_arbiter(
             .clk(clk_cpu_50),
-            .rst(cpu_rst_n),
-            .cpu_en(cpu_en),
+            .rst_n(cpu_rst_n),
 
-            //================ CPU master =================
             .cpu_request(cpu_request),
             .cpu_read(cpu_read),
             .cpu_write(cpu_write),
@@ -176,6 +234,47 @@ module slave(
 
             .cpu_ready(cpu_ready),
             .cpu_rdata(cpu_rdata),
+
+            .dma_request(dma_m_request),
+            .dma_re(dma_m_re),
+            .dma_we(dma_m_we),
+            .dma_wstrb(dma_m_wstrb),
+            .dma_addr(dma_m_addr),
+            .dma_wdata(dma_m_wdata),
+
+            .dma_ready(dma_m_ready),
+            .dma_rdata(dma_m_rdata),
+
+            .arbiter_request(arbiter_request),
+            .arbiter_read(arbiter_read),
+            .arbiter_write(arbiter_write),
+            .arbiter_wstrb(arbiter_wstrb),
+            .arbiter_addr(arbiter_addr),
+            .arbiter_wdata(arbiter_wdata),
+
+            .arbiter_ready(arbiter_ready),
+            .arbiter_rdata(arbiter_rdata)
+        );
+
+        //==================================================
+        // bus instance
+        //==================================================
+
+        simple_bus u_simple_bus(
+            .clk(clk_cpu_50),
+            .rst(cpu_rst_n),
+            .arbiter_en(cpu_en),
+
+            //================ CPU master =================
+            .arbiter_request(arbiter_request),
+            .arbiter_read(arbiter_read),
+            .arbiter_write(arbiter_write),
+            .arbiter_wstrb(arbiter_wstrb),
+            .arbiter_addr(arbiter_addr),
+            .arbiter_wdata(arbiter_wdata),
+
+            .arbiter_ready(arbiter_ready),
+            .arbiter_rdata(arbiter_rdata),
 
             //================ BRAM slave =================
             .ram_request(ram_request),
@@ -252,7 +351,40 @@ module slave(
             .ddr_wdata(ddr_wdata),
 
             .ddr_ready(ddr_ready),
-            .ddr_rdata(ddr_rdata)
+            .ddr_rdata(ddr_rdata),
+
+            //================ PERF slave =================
+            .perf_request(perf_request),
+            .perf_re(perf_re),
+            .perf_we(perf_we),
+            .perf_wstrb(perf_wstrb),
+            .perf_addr(perf_addr),
+            .perf_wdata(perf_wdata),
+
+            .perf_ready(perf_ready),
+            .perf_rdata(perf_rdata),
+
+            //================ NPU slave =================
+            .npu_request(npu_request),
+            .npu_re(npu_re),
+            .npu_we(npu_we),
+            .npu_wstrb(npu_wstrb),
+            .npu_addr(npu_addr),
+            .npu_wdata(npu_wdata),
+
+            .npu_ready(npu_ready),
+            .npu_rdata(npu_rdata),
+
+            //================ DMA slave =================
+            .dma_request(dma_s_request),
+            .dma_re(dma_s_re),
+            .dma_we(dma_s_we),
+            .dma_wstrb(dma_s_wstrb),
+            .dma_addr(dma_s_addr),
+            .dma_wdata(dma_s_wdata),
+
+            .dma_ready(dma_s_ready),
+            .dma_rdata(dma_s_rdata)
         );
 
 
@@ -340,6 +472,8 @@ module slave(
 
             // interrupt sources
             .timer_irq(timer_irq),
+            .npu_irq(npu_irq),
+            .dma_irq(dma_irq),
 
             // MMIO
             .irq_request(irq_request),
@@ -356,7 +490,7 @@ module slave(
         );
 
         //==================================================
-        // SLOW instance   ***ERROR !!!! Ğ´Êı¾İÓëready²»Í¬²½
+        // SLOW instance   ***ERROR !!!! å†™æ•°æ®ä¸readyä¸åŒæ­¥
         //==================================================
         slow_slave tb_u_slow_slave(
             .clk(clk_cpu_50),
@@ -388,7 +522,7 @@ module slave(
             .ddr_we(ddr_we),
 
             .ddr_wstrb(ddr_wstrb),
-            .ddr_addr(ddr_addr),  // ¿ÉÒÔËø´æaddr
+            .ddr_addr(ddr_addr),  // å¯ä»¥é”å­˜addr
             .ddr_wdata(ddr_wdata),
             .ddr_ready(ddr_ready),
             .ddr_rdata(ddr_rdata),
@@ -412,5 +546,84 @@ module slave(
             .ddr3_odt(ddr3_odt)
         );
 
+        //==================================================
+        // NPU instance
+        //==================================================
+        npu_slave u_npu_slave(
+            .clk(clk_cpu_50),
+            .rst_n(cpu_rst_n),
+
+            .npu_request(npu_request),
+            .npu_re(npu_re),
+            .npu_we(npu_we),
+            .npu_wstrb(npu_wstrb),
+            .npu_addr(npu_addr),
+            .npu_wdata(npu_wdata),
+
+            .npu_ready(npu_ready),
+            .npu_rdata(npu_rdata),
+
+            .npu_irq(npu_irq)
+        );
+
+        //==================================================
+        // DMA instance
+        //==================================================
+        dma_slave u_dma_slave(
+            .clk(clk_cpu_50),
+            .rst_n(cpu_rst_n),
+
+            // =========================
+            // CPU / MMIO Slave Port
+            // =========================
+            .s_request(dma_s_request),
+            .s_re(dma_s_re),
+            .s_we(dma_s_we),
+            .s_wstrb(dma_s_wstrb),
+            .s_addr(dma_s_addr),
+            .s_wdata(dma_s_wdata),
+
+            .s_ready(dma_s_ready),
+            .s_rdata(dma_s_rdata),
+
+            // =========================
+            // Bus Master Port
+            // =========================
+            .m_request(dma_m_request),
+            .m_re(dma_m_re),
+            .m_we(dma_m_we),
+            .m_wstrb(dma_m_wstrb),
+            .m_addr(dma_m_addr),
+            .m_wdata(dma_m_wdata),
+
+            .m_ready(dma_m_ready),
+            .m_rdata(dma_m_rdata),
+
+            // =========================
+            // Status
+            // =========================
+            .dma_irq(dma_irq)
+        );
+
+        //==================================================
+        // PERF instance
+        //==================================================
+        performance_counter_slave u_performance_counter_slave(
+            .clk(clk_cpu_50),
+            .rst_n(cpu_rst_n),
+
+            .instr_event(cpu_instr_event),
+            .stall_event(cpu_stall_event),
+
+            .perf_request(perf_request),
+            .perf_re(perf_re),
+            .perf_we(perf_we),
+            .perf_wstrb(perf_wstrb),
+            .perf_addr(perf_addr),
+            .perf_wdata(perf_wdata),
+
+            .perf_ready(perf_ready),
+            .perf_rdata(perf_rdata)
+        );
 
 endmodule

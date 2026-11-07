@@ -33,7 +33,7 @@ module ddr_subsystem(
         input         ddr_we,
 
         input       [3:0]   ddr_wstrb,
-        input       [31:0]  ddr_addr,  // ¿ÉÒÔËø´æaddr
+        input       [31:0]  ddr_addr,  // å¯ä»¥é”å­˜addr
         input       [31:0]  ddr_wdata,
         output              ddr_ready,
         output      [31:0]  ddr_rdata,
@@ -191,7 +191,7 @@ module ddr_subsystem(
         .ui_clk_sync_rst(ddr_logic_ui_rst),
         .init_calib_complete(init_calib_complete),
 
-        // ÉÏ²ãÇëÇó
+        // ä¸Šå±‚è¯·æ±‚
         .req_valid(req_valid),
         .req_write(req_write),      // 1=write, 0=read
         .req_addr(req_addr),
@@ -200,7 +200,7 @@ module ddr_subsystem(
 
         .req_ready(req_ready),
 
-        // ÉÏ²ãÏìÓ¦
+        // ä¸Šå±‚å“åº”
         .rsp_done(rsp_done),
         .rsp_rdata(rsp_rdata),
 
@@ -252,7 +252,7 @@ module ddr_subsystem(
 
         .app_wdf_data          (app_wdf_data),
         .app_wdf_end           (app_wdf_end),
-        .app_wdf_mask          (app_wdf_mask), // 0Ğ´Èë£¬1ÆÁ±Î
+        .app_wdf_mask          (app_wdf_mask), // 0å†™å…¥ï¼Œ1å±è”½
         .app_wdf_wren          (app_wdf_wren),
 
         .app_rd_data           (app_rd_data),

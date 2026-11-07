@@ -26,6 +26,8 @@ module irq_controller(
 
         // interrupt sources
         input                timer_irq,
+        input                npu_irq,
+        input                dma_irq,
 
         // MMIO
         input                irq_request,
@@ -41,14 +43,14 @@ module irq_controller(
         output        cpu_irq
     );
 
-    // 0x10003000  PENDING   ÷ª∂¡
-    // 0x10003004  MASK      ∂¡–¥
+    // 0x10003000  PENDING   Âè™ËØª
+    // 0x10003004  MASK      ËØªÂÜô
     localparam  PENDING =  8'h00;
     localparam  MASK    =  8'h04;
 
     wire [31:0] irq_pending;
 
-    assign irq_pending = {31'd0, timer_irq};
+    assign irq_pending = {29'd0, dma_irq, npu_irq, timer_irq};
 
     reg [31:0] irq_mask;
 

@@ -1,27 +1,31 @@
 module CPU_TOP (
     input clk,
     input rst,
-    input [31:0] cpu_rdataM, // »ñµÃ¶ÁÊı¾İ
-    output cpu_en, // ·ÖÆµĞÅºÅ
-    output cpu_readM, // ¶ÁÊ¹ÄÜ
-    output cpu_writeM, // Ğ´Ê¹ÄÜ
-    output [3:0] cpu_wstrbM, // ×Ö½ÚĞ´Ê¹ÄÜ
-    output wire [31:0] cpu_addrM, // ¶ÁµØÖ·
-    output wire [31:0] cpu_wdataM, // Ğ´Êı¾İ
+    input [31:0] cpu_rdataM, // è·å¾—è¯»æ•°æ®
+    output cpu_en, // åˆ†é¢‘ä¿¡å·
+    output cpu_readM, // è¯»ä½¿èƒ½
+    output cpu_writeM, // å†™ä½¿èƒ½
+    output [3:0] cpu_wstrbM, // å­—èŠ‚å†™ä½¿èƒ½
+    output wire [31:0] cpu_addrM, // è¯»åœ°å€
+    output wire [31:0] cpu_wdataM, // å†™æ•°æ®
     
-    output wire rom_en, // Ö¸Áî¶ÁÊ¹ÄÜ
-    output wire [31:0] pc_oF, // Ö¸Áî¶ÁµØÖ·
-    input [31:0] instrIM, //»ñµÃÖ¸Áî
+    output wire rom_en, // æŒ‡ä»¤è¯»ä½¿èƒ½
+    output wire [31:0] pc_oF, // æŒ‡ä»¤è¯»åœ°å€
+    input [31:0] instrIM, //è·å¾—æŒ‡ä»¤
 
-    input  irq, // ÖĞ¶Ï
+    input  irq, // ä¸­æ–­
 
-    output cpu_requestM, // cpuÓĞĞ§ÇëÇó
-    input  cpu_ready     // ÇëÇó´¦Àí¾ÍĞ÷
+    output cpu_requestM, // cpuæœ‰æ•ˆè¯·æ±‚
+    input  cpu_ready,     // è¯·æ±‚å¤„ç†å°±ç»ª
+
+    output cpu_instr_event, // æ€§èƒ½è¯Šæ–­- ä¸€æ¬¡æŒ‡ä»¤å®Œæˆäº‹ä»¶
+    output cpu_stall_event    // æ€§èƒ½è¯Šæ–­- ä¸€æ¬¡æš‚åœäº‹ä»¶
   );
 
     localparam T_clk = 1;
     wire mem_read_en_effM, mem_write_en_effM;
     wire [31:0] early_resultM, DM_data_iM, DM_data_oM;
+    wire validW, stall;
 
     assign DM_data_oM = cpu_rdataM; 
     assign cpu_readM = mem_read_en_effM;
@@ -30,11 +34,14 @@ module CPU_TOP (
     assign cpu_wdataM = DM_data_iM;
     assign cpu_wstrbM = cpu_writeM ? 4'b1111 : 4'b0000;
 
-    // ·Ç¹Ì¶¨ÖÜÆÚÑÓ³Ù
+    // éå›ºå®šå‘¨æœŸå»¶è¿Ÿ
     wire mem_accessM, bus_wait;
     assign mem_accessM = mem_read_en_effM || mem_write_en_effM;
     assign cpu_requestM = mem_accessM;
     assign bus_wait = mem_accessM && !cpu_ready;
+
+    assign cpu_instr_event = validW;
+    assign cpu_stall_event = stall || bus_wait;
 
     MIPS u_mips(
       .clk(clk),
@@ -50,10 +57,12 @@ module CPU_TOP (
       .rom_en(rom_en),
       .pc_oF(pc_oF),
       .early_resultM(early_resultM),
-      .DM_data_iM(DM_data_iM)
+      .DM_data_iM(DM_data_iM),
+      .validW(validW), // æ€§èƒ½åˆ†æç”¨
+      .stall(stall) // æ€§èƒ½åˆ†æç”¨
     );
 
-    // ·ÖÆµÆ÷
+    // åˆ†é¢‘å™¨
     cpu_cpu_en u_cpu_cpu_en(
         .clk(clk),
         .rst(rst),

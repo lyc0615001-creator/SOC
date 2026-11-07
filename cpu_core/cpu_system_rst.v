@@ -12,5 +12,5 @@ module cpu_system_rst (
             cpu_rst_sync <= {cpu_rst_sync[0], 1'b1};
     end
 
-    wire cpu_rst_n = cpu_rst_sync[1];
+    assign cpu_rst_n = cpu_rst_sync[1];
 endmodule

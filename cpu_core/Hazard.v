@@ -39,13 +39,13 @@ module Hazard(
 
     // F IM D E M DM W
 
-    // R + jalÊı¾İÃ°ÏÕ
-    // Ô­Òò£ºµ±Ç°Ö¸ÁîĞ´ÈëµØÖ·ÎªÏÂÒ»Ö¸Áî¶ÁÈ¡µØÖ· ĞèÒªÊı¾İÇ°µİ
-    // Ç°µİD½×¶Î¼Ü¹¹ E/M/DM/W + normal -> D ¹²ÎåÖÖÇé¿ö
+    // R + jalæ•°æ®å†’é™©
+    // åŸå› ï¼šå½“å‰æŒ‡ä»¤å†™å…¥åœ°å€ä¸ºä¸‹ä¸€æŒ‡ä»¤è¯»å–åœ°å€ éœ€è¦æ•°æ®å‰é€’
+    // å‰é€’Dé˜¶æ®µæ¶æ„ E/M/DM/W + normal -> D å…±äº”ç§æƒ…å†µ
 
-    // ÅĞ¶ÏÌõ¼ş£¬ÒÔE½×¶ÎÇ°µİÎªÀı £º RF_address3E !=0 && RF_address3E == rsD/rtD && w_enE && !lw
-    // ¶¨Òå forwardAD 000-normal  001-E  010-M  011-DM  100-W 
-    // ** v2.2 É¾³ıW½×¶ÎÇ°µİ£¬Ê¹ÓÃÍ¬ÖÜÆÚ¶ÁĞ´ÅĞ¶Ï
+    // åˆ¤æ–­æ¡ä»¶ï¼Œä»¥Eé˜¶æ®µå‰é€’ä¸ºä¾‹ ï¼š RF_address3E !=0 && RF_address3E == rsD/rtD && w_enE && !lw
+    // å®šä¹‰ forwardAD 000-normal  001-E  010-M  011-DM  100-W 
+    // ** v2.2 åˆ é™¤Wé˜¶æ®µå‰é€’ï¼Œä½¿ç”¨åŒå‘¨æœŸè¯»å†™åˆ¤æ–­
 
     assign forwardAD = (validE && reg_write_enE && (reg_data_muxE != 2'b01 ) && (RF_address3E != 5'b0) && (RF_address3E == rsD)) ? 2'b01 :
                        (validM && reg_write_enM && (reg_data_muxM != 2'b01 ) && (RF_address3M != 5'b0) && (RF_address3M == rsD)) ? 2'b10 :
@@ -57,27 +57,27 @@ module Hazard(
                        (validDM && reg_write_enDM && (RF_address3DM != 5'b0) && (RF_address3DM == rtD)) ? 2'b11 :
                        2'b00;
 
-    // lw Êı¾İÃ°ÏÕ
-    // Ô­Òò£º Èç¹ûµ±Ç°Ö¸ÁîËùĞèÊı¾İÀ´×ÔÉÏÒ»ÌõÖ¸Áîlw£¬ÄÇÃ´ÆÕÍ¨µÄÊı¾İÇ°µİÎŞ·¨½â¾öÎÊÌâ£¬ÒòÎªlwÖ¸ÁîÔÚE/M½×¶ÎÖ»ÓĞµØÖ· 
-    // ½â¾ö´ëÊ©£º Á÷Ë®ÏßÔİÍ££¬½«µ±Ç°Ö¸Áî¼°Ö®ºóµÄÖ¸ÁîÔİÍ££¬²¢invalidÒ»ÌõE½×¶ÎÖ¸Áî
+    // lw æ•°æ®å†’é™©
+    // åŸå› ï¼š å¦‚æœå½“å‰æŒ‡ä»¤æ‰€éœ€æ•°æ®æ¥è‡ªä¸Šä¸€æ¡æŒ‡ä»¤lwï¼Œé‚£ä¹ˆæ™®é€šçš„æ•°æ®å‰é€’æ— æ³•è§£å†³é—®é¢˜ï¼Œå› ä¸ºlwæŒ‡ä»¤åœ¨E/Mé˜¶æ®µåªæœ‰åœ°å€ 
+    // è§£å†³æªæ–½ï¼š æµæ°´çº¿æš‚åœï¼Œå°†å½“å‰æŒ‡ä»¤åŠä¹‹åçš„æŒ‡ä»¤æš‚åœï¼Œå¹¶invalidä¸€æ¡Eé˜¶æ®µæŒ‡ä»¤
 
-    // D½×¶ÎÅĞ±ğ¼Ü¹¹
-    // ÅĞ¶ÏÌõ¼ş£º (reg_write_enE &&  RF_adress3E == rsD || RF_adress3E == rtD) or (reg_write_enM &&  RF_adress3M == rsD || RF_adress3M == rtD)
+    // Dé˜¶æ®µåˆ¤åˆ«æ¶æ„
+    // åˆ¤æ–­æ¡ä»¶ï¼š (reg_write_enE &&  RF_adress3E == rsD || RF_adress3E == rtD) or (reg_write_enM &&  RF_adress3M == rsD || RF_adress3M == rtD)
 
     // assign hazardE = validD && validE && reg_write_enE && reg_data_muxE && (RF_address3E != 5'b0) && ((used_rsD && RF_address3E == rsD) || (used_rtD && RF_address3E == rtD));
     // assign hazardM = validD && validM && reg_write_enM && reg_data_muxM && (RF_address3M != 5'b0) && ((used_rsD && RF_address3M == rsD) || (used_rtD && RF_address3M == rtD));
 
     // assign stall = hazardE || hazardM;
 
-    // ** v3.1 Ç°µİE¼Ü¹¹ ½öÕë¶ÔlwÖ¸ÁîµÄDM½×¶ÎÇ°µİ
-    // Ä¿µÄ£ºÊ¹µÃlw-useÉÙÔİÍ£Ò»¸ö»ØºÏ£¨½öÕë¶Ôlw-R£©
-    // ÅĞ¶ÏÌõ¼ş£ºDM½×¶ÎĞ´µØÖ··Ç0 ÇÒµÈÓÚE½×¶Î¶ÁµØÖ· && Ö¸ÁîÓĞĞ§ && Ğ´Ö¸Áî
+    // ** v3.1 å‰é€’Eæ¶æ„ ä»…é’ˆå¯¹lwæŒ‡ä»¤çš„DMé˜¶æ®µå‰é€’
+    // ç›®çš„ï¼šä½¿å¾—lw-useå°‘æš‚åœä¸€ä¸ªå›åˆï¼ˆä»…é’ˆå¯¹lw-Rï¼‰
+    // åˆ¤æ–­æ¡ä»¶ï¼šDMé˜¶æ®µå†™åœ°å€é0 ä¸”ç­‰äºEé˜¶æ®µè¯»åœ°å€ && æŒ‡ä»¤æœ‰æ•ˆ && å†™æŒ‡ä»¤
 
     // addi $t0 $zero 11
     // addi $t0 $zero 1
     // add $t2 $to $t1
-    // Õı³£1Ö¸ÁîÇ°µİD¸ø2£¬2Ö¸ÁîÇ°µİD¸ø3. ¼ÓÈëE½×¶ÎÇ°ÖÃºó£¬ËæºóÓÖ»á1Ö¸ÁîÇ°µİE¸ø3£¬ÒıÆğ´íÎó
-    // ÅĞ¶ÏÌõ¼ş ·¢ÏÖÔÚDMÇ°µİEÊ±£¬ÏÈÅĞ¶ÏMÊÇ·ñÒÑºÍEÆ¥Åä£¬1Ôò´ú±íÉÏÒ»ÂÖÒÑ¾­·¢ÉúDÇ°µİ
+    // æ­£å¸¸1æŒ‡ä»¤å‰é€’Dç»™2ï¼Œ2æŒ‡ä»¤å‰é€’Dç»™3. åŠ å…¥Eé˜¶æ®µå‰ç½®åï¼Œéšååˆä¼š1æŒ‡ä»¤å‰é€’Eç»™3ï¼Œå¼•èµ·é”™è¯¯
+    // åˆ¤æ–­æ¡ä»¶ å‘ç°åœ¨DMå‰é€’Eæ—¶ï¼Œå…ˆåˆ¤æ–­Mæ˜¯å¦å·²å’ŒEåŒ¹é…ï¼Œ1åˆ™ä»£è¡¨ä¸Šä¸€è½®å·²ç»å‘ç”ŸDå‰é€’
 
     assign matchA = validM && reg_write_enM && (RF_address3M != 5'b0) && (RF_address3M == rsE);
     assign matchB = validM && reg_write_enM && (RF_address3M != 5'b0) && (RF_address3M == rtE);
@@ -90,12 +90,12 @@ module Hazard(
 
     assign stall = hazardE || ((branchD || jrD) && hazardM);
 
-    // beq jump ¿ØÖÆÃ°ÏÕ
-    // Ô­Òò£ºµ±Ç°Ö´ĞĞbeq»òjump£¬ĞèÒªÉú³ÉÒ»¸öredirectDĞÅºÅ£¬ÎŞĞ§Ö®ºóµÄÁ½ÌõÖ¸Áî
-    // ½â¾ö´ëÊ©£º½øĞĞredirectD²Ù×÷Ê¹µÃÏÂÒ»ÖÜÆÚµÄvalidIM¡¢validDÎª0
+    // beq jump æ§åˆ¶å†’é™©
+    // åŸå› ï¼šå½“å‰æ‰§è¡Œbeqæˆ–jumpï¼Œéœ€è¦ç”Ÿæˆä¸€ä¸ªredirectDä¿¡å·ï¼Œæ— æ•ˆä¹‹åçš„ä¸¤æ¡æŒ‡ä»¤
+    // è§£å†³æªæ–½ï¼šè¿›è¡ŒredirectDæ“ä½œä½¿å¾—ä¸‹ä¸€å‘¨æœŸçš„validIMã€validDä¸º0
 
-    // D½×¶ÎÅĞ±ğ¼Ü¹¹
-    // ÅĞ¶ÏÌõ¼ş£ºbranch_selD || jump_selD
+    // Dé˜¶æ®µåˆ¤åˆ«æ¶æ„
+    // åˆ¤æ–­æ¡ä»¶ï¼šbranch_selD || jump_selD
 
     assign redirectD = (jump_selD || branch_selD || jr_selD || eretD);
 

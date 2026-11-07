@@ -23,7 +23,7 @@
 
 module soc(
         input              clk,
-        input              rst,
+        input              rst_n,
         output    [3:0]    led,
         
         output             tx,
@@ -66,6 +66,9 @@ module soc(
 
     wire              cpu_irq;
 
+    wire              cpu_instr_event;
+    wire              cpu_stall_event;
+
     //================ CLK WIZ master =================
 
     wire clk_cpu_50;
@@ -74,14 +77,14 @@ module soc(
 
     wire clk_ref_200;
 
-    wire mig_rst_n;  // DDR-mig¸´Î»ĞÅºÅ£¬µÍÓĞĞ§
+    wire mig_rst_n;  // DDR-migå¤ä½ä¿¡å·ï¼Œä½æœ‰æ•ˆ
 
-    wire cpu_rst_n;  // È«¾Öcpu¸´Î»ĞÅºÅ£¬µÍÓĞĞ§
+    wire cpu_rst_n;  // å…¨å±€cpuå¤ä½ä¿¡å·ï¼Œä½æœ‰æ•ˆ
 
 
     clk_rst_manage u_clk_rst_manage(
         .clk(clk),
-        .rst(rst),
+        .rst(rst_n),
 
         .clk_cpu_50(clk_cpu_50),
         .clk_mig_160(clk_mig_160),
@@ -98,15 +101,18 @@ module soc(
     CPU_TOP u_CPU_TOP(
         .clk(clk_cpu_50),
         .rst(cpu_rst_n),
-        .cpu_rdataM(cpu_rdata), // »ñµÃ¶ÁÊı¾İ
-        .cpu_en(cpu_en), // ·ÖÆµĞÅºÅ
-        .cpu_readM(cpu_read), // ¶ÁÊ¹ÄÜ
-        .cpu_writeM(cpu_write), // Ğ´Ê¹ÄÜ
-        .cpu_wstrbM(cpu_wstrb), // ×Ö½ÚĞ´Ê¹ÄÜ
-        .cpu_addrM(cpu_addr), // ¶ÁĞ´µØÖ·
-        .cpu_wdataM(cpu_wdata), // Ğ´Êı¾İ
-        .irq(cpu_irq), // ÖĞ¶ÏÊ¹ÄÜ
-        .cpu_ready(cpu_ready), // ÊÂÎñ½áÊø
+        .cpu_rdataM(cpu_rdata), // è·å¾—è¯»æ•°æ®
+        .cpu_en(cpu_en), // åˆ†é¢‘ä¿¡å·
+        .cpu_readM(cpu_read), // è¯»ä½¿èƒ½
+        .cpu_writeM(cpu_write), // å†™ä½¿èƒ½
+        .cpu_wstrbM(cpu_wstrb), // å­—èŠ‚å†™ä½¿èƒ½
+        .cpu_addrM(cpu_addr), // è¯»å†™åœ°å€
+        .cpu_wdataM(cpu_wdata), // å†™æ•°æ®
+        .irq(cpu_irq), // ä¸­æ–­ä½¿èƒ½
+        .cpu_ready(cpu_ready), // äº‹åŠ¡ç»“æŸ
+
+        .cpu_instr_event(cpu_instr_event),
+        .cpu_stall_event(cpu_stall_event),
         // instr
         .rom_en(rom_en),
         .pc_oF(pc_oF),
@@ -123,7 +129,7 @@ module soc(
         .clk_cpu_50(clk_cpu_50),
         .clk_mig_160(clk_mig_160),
         .clk_ref_200(clk_ref_200),
-        .sys_rst_n(rst),  
+        .sys_rst_n(rst_n),  
         .cpu_rst_n(cpu_rst_n),
         .mig_rst_n(mig_rst_n),
 
@@ -149,6 +155,9 @@ module soc(
         .cpu_rdata(cpu_rdata),
 
         .cpu_irq(cpu_irq),
+
+        .cpu_instr_event(cpu_instr_event),
+        .cpu_stall_event(cpu_stall_event),
 
         // DDR
         .ddr3_dq(ddr3_dq),
