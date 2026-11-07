@@ -16,12 +16,16 @@ module CPU_TOP (
     input  irq, // 中断
 
     output cpu_requestM, // cpu有效请求
-    input  cpu_ready     // 请求处理就绪
+    input  cpu_ready,     // 请求处理就绪
+
+    output cpu_instr_event, // 性能诊断- 一次指令完成事件
+    output cpu_stall_event    // 性能诊断- 一次暂停事件
   );
 
     localparam T_clk = 1;
     wire mem_read_en_effM, mem_write_en_effM;
     wire [31:0] early_resultM, DM_data_iM, DM_data_oM;
+    wire validW, stall;
 
     assign DM_data_oM = cpu_rdataM; 
     assign cpu_readM = mem_read_en_effM;
@@ -35,6 +39,9 @@ module CPU_TOP (
     assign mem_accessM = mem_read_en_effM || mem_write_en_effM;
     assign cpu_requestM = mem_accessM;
     assign bus_wait = mem_accessM && !cpu_ready;
+
+    assign cpu_instr_event = validW;
+    assign cpu_stall_event = stall || bus_wait;
 
     MIPS u_mips(
       .clk(clk),
@@ -50,7 +57,9 @@ module CPU_TOP (
       .rom_en(rom_en),
       .pc_oF(pc_oF),
       .early_resultM(early_resultM),
-      .DM_data_iM(DM_data_iM)
+      .DM_data_iM(DM_data_iM),
+      .validW(validW), // 性能分析用
+      .stall(stall) // 性能分析用
     );
 
     // 分频器

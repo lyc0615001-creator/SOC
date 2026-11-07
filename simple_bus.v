@@ -135,7 +135,18 @@ module simple_bus(
         output     [31:0]  dma_wdata,
 
         input              dma_ready,
-        input      [31:0]  dma_rdata
+        input      [31:0]  dma_rdata,
+
+        //================  slave =================
+        output             perf_request,
+        output             perf_re,
+        output             perf_we,
+        output     [3:0]   perf_wstrb,
+        output     [7:0]   perf_addr,
+        output     [31:0]  perf_wdata,
+
+        input              perf_ready,
+        input      [31:0]  perf_rdata
     );
 
     //==================================================
@@ -162,6 +173,9 @@ module simple_bus(
 
     // 0x1000_5000 ~ 0x1000_50FF
     wire sel_slow;
+
+    // 0x1000_9000 ~ 0x1000_90FF
+    wire sel_perf;
 
     // 0x4000_0000 ~ 0x4000_0FFF
     wire sel_npu;
@@ -198,6 +212,9 @@ module simple_bus(
 
     // slow
     assign sel_slow = (arbiter_addr[31:8] == 24'h100050);
+
+    // perf
+    assign sel_perf = (arbiter_addr[31:8] == 24'h100090);
 
     // npu
     assign sel_npu = (arbiter_addr[31:28] == 4'h4);
@@ -286,6 +303,17 @@ module simple_bus(
 
     assign slow_wdata = latched_wdata;
 
+    // perf
+    assign perf_re = arbiter_en && sel_perf && latched_read;
+
+    assign perf_we = arbiter_en && sel_perf && latched_write;
+
+    assign perf_wstrb = latched_wstrb;
+
+    assign perf_addr = latched_addr[7:0];
+
+    assign perf_wdata = latched_wdata;
+
     // npu
     assign npu_re = arbiter_en && sel_npu && latched_read;
 
@@ -325,8 +353,9 @@ module simple_bus(
     localparam SEL_IRQ   = 4'b0101;
     localparam SEL_DMA   = 4'b0110;
     localparam SEL_SLOW  = 4'b0111;
-    localparam SEL_NPU   = 4'b1000;
-    localparam SEL_DDR   = 4'b1001;
+    localparam SEL_PERF  = 4'b1000;
+    localparam SEL_NPU   = 4'b1001;
+    localparam SEL_DDR   = 4'b1010;
 
     wire transaction_done;
 
@@ -355,6 +384,7 @@ module simple_bus(
                 else if (sel_irq) active_sel <= SEL_IRQ;
                 else if (sel_dma) active_sel <= SEL_DMA;
                 else if (sel_slow) active_sel <= SEL_SLOW;
+                else if (sel_perf) active_sel <= SEL_PERF;
                 else if (sel_npu) active_sel <= SEL_NPU;
                 else if (sel_ddr) active_sel <= SEL_DDR;
                 else active_sel <= SEL_NONE;
@@ -372,6 +402,7 @@ module simple_bus(
     assign irq_request   = busy && active_sel == SEL_IRQ;
     assign dma_request   = busy && active_sel == SEL_DMA;
     assign slow_request  = busy && active_sel == SEL_SLOW;
+    assign perf_request  = busy && active_sel == SEL_PERF;
     assign npu_request   = busy && active_sel == SEL_NPU;
     assign ddr_request   = busy && active_sel == SEL_DDR;
 
@@ -409,6 +440,10 @@ module simple_bus(
             SEL_SLOW: begin
                 arbiter_rdata = slow_rdata;
                 arbiter_ready = slow_ready;
+            end
+            SEL_PERF: begin
+                arbiter_rdata = perf_rdata;
+                arbiter_ready = perf_ready;
             end
             SEL_NPU: begin
                 arbiter_rdata = npu_rdata;

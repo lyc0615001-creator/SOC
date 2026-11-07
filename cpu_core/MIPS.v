@@ -9,7 +9,8 @@ module MIPS (
     output rom_en,
     output [31:0] pc_oF,
     output [31:0] early_resultM,
-    output [31:0] DM_data_iM
+    output [31:0] DM_data_iM,
+    output validW, stall
 );
     wire reg_write_enE, reg_write_enM, reg_write_enDM;
     wire reg_write_enW, alu_src_muxE;
@@ -61,7 +62,9 @@ module MIPS (
         .hold_em(hold_em), 
         .validM(validM),
         .bubble_e(bubble_e),
-        .bubble_dm(bubble_dm)
+        .bubble_dm(bubble_dm),
+        .validW(validW),
+        .stall(stall)
     );
 
     // 让valid 只生效在处理器内部

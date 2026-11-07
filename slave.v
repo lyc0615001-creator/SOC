@@ -49,6 +49,11 @@ module slave(
 
         output             cpu_irq,
 
+        // 性能分析
+        input              cpu_instr_event,
+        input              cpu_stall_event,
+
+        // ddr
         inout       [15:0] ddr3_dq,
         inout       [1:0]  ddr3_dqs_n,
         inout       [1:0]  ddr3_dqs_p,
@@ -192,6 +197,16 @@ module slave(
 
         wire              dma_irq;
 
+        //================ PERF slave =================
+        wire              perf_request;
+        wire              perf_re;
+        wire              perf_we;
+        wire      [31:0]  perf_addr;
+        wire      [3:0]   perf_wstrb;
+        wire      [31:0]  perf_wdata;
+
+        wire              perf_ready;
+        wire      [31:0]  perf_rdata;
 
         //==================================================
         // instruction instance
@@ -338,7 +353,18 @@ module slave(
             .ddr_ready(ddr_ready),
             .ddr_rdata(ddr_rdata),
 
-            //================ SLOW slave =================
+            //================ PERF slave =================
+            .perf_request(perf_request),
+            .perf_re(perf_re),
+            .perf_we(perf_we),
+            .perf_wstrb(perf_wstrb),
+            .perf_addr(perf_addr),
+            .perf_wdata(perf_wdata),
+
+            .perf_ready(perf_ready),
+            .perf_rdata(perf_rdata),
+
+            //================ NPU slave =================
             .npu_request(npu_request),
             .npu_re(npu_re),
             .npu_we(npu_we),
@@ -577,6 +603,27 @@ module slave(
             // Status
             // =========================
             .dma_irq(dma_irq)
+        );
+
+        //==================================================
+        // PERF instance
+        //==================================================
+        performance_counter_slave u_performance_counter_slave(
+            .clk(clk_cpu_50),
+            .rst_n(cpu_rst_n),
+
+            .instr_event(cpu_instr_event),
+            .stall_event(cpu_stall_event),
+
+            .perf_request(perf_request),
+            .perf_re(perf_re),
+            .perf_we(perf_we),
+            .perf_wstrb(perf_wstrb),
+            .perf_addr(perf_addr),
+            .perf_wdata(perf_wdata),
+
+            .perf_ready(perf_ready),
+            .perf_rdata(perf_rdata)
         );
 
 endmodule

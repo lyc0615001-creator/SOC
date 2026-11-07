@@ -66,6 +66,9 @@ module soc(
 
     wire              cpu_irq;
 
+    wire              cpu_instr_event;
+    wire              cpu_stall_event;
+
     //================ CLK WIZ master =================
 
     wire clk_cpu_50;
@@ -107,6 +110,9 @@ module soc(
         .cpu_wdataM(cpu_wdata), // 写数据
         .irq(cpu_irq), // 中断使能
         .cpu_ready(cpu_ready), // 事务结束
+
+        .cpu_instr_event(cpu_instr_event),
+        .cpu_stall_event(cpu_stall_event),
         // instr
         .rom_en(rom_en),
         .pc_oF(pc_oF),
@@ -149,6 +155,9 @@ module soc(
         .cpu_rdata(cpu_rdata),
 
         .cpu_irq(cpu_irq),
+
+        .cpu_instr_event(cpu_instr_event),
+        .cpu_stall_event(cpu_stall_event),
 
         // DDR
         .ddr3_dq(ddr3_dq),

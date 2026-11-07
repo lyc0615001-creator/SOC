@@ -16,7 +16,8 @@ module Datapath (
     input bus_wait,
     output [31:0] pc_oF, early_resultM, DM_data_iM, instrD,
     output hold_de, hold_em, hold_fim, validM,
-    output bubble_e, bubble_dm
+    output bubble_e, bubble_dm,
+    output validW, stall
 );
 
     // F阶段变量
@@ -57,11 +58,11 @@ module Datapath (
     // HAZARD 变量
     wire [1:0] forwardAD, forwardBD;
     wire [31:0] RF_data_o1_mux4D, RF_data_o2_mux4D;
-    wire redirectD, stall;
+    wire redirectD;
     wire [31:0] ForwardValueE, ForwardValueM, ForwardValueDM;
 
     // Valid_pipeline 变量
-    wire validIM, validD, validE, validM, validDM, validW;
+    wire validIM, validD, validE, validM, validDM;
     wire [5:0] valid_signs;
     wire rf_write_enW;
 
