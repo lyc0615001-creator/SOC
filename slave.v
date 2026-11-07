@@ -66,6 +66,16 @@ module slave(
         output      [1:0]  ddr3_dm,
         output      [0:0]  ddr3_odt
     );
+        //================ Arbiter =================
+        wire              arbiter_request;
+        wire              arbiter_re;
+        wire              arbiter_we;
+        wire      [3:0]   arbiter_wstrb;
+        wire      [31:0]  arbiter_addr;
+        wire      [31:0]  arbiter_wdata;
+
+        wire              arbiter_ready;
+        wire      [31:0]  arbiter_rdata;
 
         //================ BRAM slave =================
         wire              ram_request;
@@ -159,6 +169,29 @@ module slave(
 
         wire              npu_irq;
 
+        ///================ DMA slave =================
+        wire              dma_s_request;
+        wire              dma_s_re;
+        wire              dma_s_we;
+        wire      [3:0]   dma_s_wstrb;
+        wire      [7:0]   dma_s_addr;
+        wire      [31:0]  dma_s_wdata;
+
+        wire              dma_s_ready;
+        wire      [31:0]  dma_s_rdata;
+
+        wire              dma_m_request;
+        wire              dma_m_re;
+        wire              dma_m_we;
+        wire      [3:0]   dma_m_wstrb;
+        wire      [31:0]  dma_m_addr;
+        wire      [31:0]  dma_m_wdata;
+
+        wire              dma_m_ready;
+        wire      [31:0]  dma_m_rdata;
+
+        wire              dma_irq;
+
 
         //==================================================
         // instruction instance
@@ -171,15 +204,12 @@ module slave(
         );
 
         //==================================================
-        // bus instance
+        // Arbiter
         //==================================================
-
-        simple_bus u_simple_bus(
+        arbiter u_arbiter(
             .clk(clk_cpu_50),
-            .rst(cpu_rst_n),
-            .cpu_en(cpu_en),
+            .rst_n(cpu_rst_n),
 
-            //================ CPU master =================
             .cpu_request(cpu_request),
             .cpu_read(cpu_read),
             .cpu_write(cpu_write),
@@ -189,6 +219,47 @@ module slave(
 
             .cpu_ready(cpu_ready),
             .cpu_rdata(cpu_rdata),
+
+            .dma_request(dma_m_request),
+            .dma_re(dma_m_re),
+            .dma_we(dma_m_we),
+            .dma_wstrb(dma_m_wstrb),
+            .dma_addr(dma_m_addr),
+            .dma_wdata(dma_m_wdata),
+
+            .dma_ready(dma_m_ready),
+            .dma_rdata(dma_m_rdata),
+
+            .arbiter_request(arbiter_request),
+            .arbiter_read(arbiter_read),
+            .arbiter_write(arbiter_write),
+            .arbiter_wstrb(arbiter_wstrb),
+            .arbiter_addr(arbiter_addr),
+            .arbiter_wdata(arbiter_wdata),
+
+            .arbiter_ready(arbiter_ready),
+            .arbiter_rdata(arbiter_rdata)
+        );
+
+        //==================================================
+        // bus instance
+        //==================================================
+
+        simple_bus u_simple_bus(
+            .clk(clk_cpu_50),
+            .rst(cpu_rst_n),
+            .arbiter_en(cpu_en),
+
+            //================ CPU master =================
+            .arbiter_request(arbiter_request),
+            .arbiter_read(arbiter_read),
+            .arbiter_write(arbiter_write),
+            .arbiter_wstrb(arbiter_wstrb),
+            .arbiter_addr(arbiter_addr),
+            .arbiter_wdata(arbiter_wdata),
+
+            .arbiter_ready(arbiter_ready),
+            .arbiter_rdata(arbiter_rdata),
 
             //================ BRAM slave =================
             .ram_request(ram_request),
@@ -276,7 +347,18 @@ module slave(
             .npu_wdata(npu_wdata),
 
             .npu_ready(npu_ready),
-            .npu_rdata(npu_rdata)
+            .npu_rdata(npu_rdata),
+
+            //================ DMA slave =================
+            .dma_request(dma_s_request),
+            .dma_re(dma_s_re),
+            .dma_we(dma_s_we),
+            .dma_wstrb(dma_s_wstrb),
+            .dma_addr(dma_s_addr),
+            .dma_wdata(dma_s_wdata),
+
+            .dma_ready(dma_s_ready),
+            .dma_rdata(dma_s_rdata)
         );
 
 
@@ -365,6 +447,7 @@ module slave(
             // interrupt sources
             .timer_irq(timer_irq),
             .npu_irq(npu_irq),
+            .dma_irq(dma_irq),
 
             // MMIO
             .irq_request(irq_request),
@@ -455,6 +538,45 @@ module slave(
             .npu_rdata(npu_rdata),
 
             .npu_irq(npu_irq)
+        );
+
+        //==================================================
+        // DMA instance
+        //==================================================
+        dma_slave u_dma_slave(
+            .clk(clk_cpu_50),
+            .rst_n(cpu_rst_n),
+
+            // =========================
+            // CPU / MMIO Slave Port
+            // =========================
+            .s_request(dma_s_request),
+            .s_re(dma_s_re),
+            .s_we(dma_s_we),
+            .s_wstrb(dma_s_wstrb),
+            .s_addr(dma_s_addr),
+            .s_wdata(dma_s_wdata),
+
+            .s_ready(dma_s_ready),
+            .s_rdata(dma_s_rdata),
+
+            // =========================
+            // Bus Master Port
+            // =========================
+            .m_request(dma_m_request),
+            .m_re(dma_m_re),
+            .m_we(dma_m_we),
+            .m_wstrb(dma_m_wstrb),
+            .m_addr(dma_m_addr),
+            .m_wdata(dma_m_wdata),
+
+            .m_ready(dma_m_ready),
+            .m_rdata(dma_m_rdata),
+
+            // =========================
+            // Status
+            // =========================
+            .dma_irq(dma_irq)
         );
 
 endmodule

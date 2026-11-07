@@ -27,6 +27,7 @@ module irq_controller(
         // interrupt sources
         input                timer_irq,
         input                npu_irq,
+        input                dma_irq,
 
         // MMIO
         input                irq_request,
@@ -49,7 +50,7 @@ module irq_controller(
 
     wire [31:0] irq_pending;
 
-    assign irq_pending = {30'd0, npu_irq, timer_irq};
+    assign irq_pending = {29'd0, dma_irq, npu_irq, timer_irq};
 
     reg [31:0] irq_mask;
 

@@ -25,18 +25,18 @@
 module simple_bus(
         input              clk,
         input              rst,
-        input              cpu_en,
+        input              arbiter_en,
 
-        //================ CPU master =================
-        input              cpu_request,
-        input              cpu_read,
-        input              cpu_write,
-        input      [3:0]   cpu_wstrb,
-        input      [31:0]  cpu_addr,
-        input      [31:0]  cpu_wdata,
+        //================ Arbiter master =================
+        input              arbiter_request,
+        input              arbiter_read,
+        input              arbiter_write,
+        input      [3:0]   arbiter_wstrb,
+        input      [31:0]  arbiter_addr,
+        input      [31:0]  arbiter_wdata,
 
-        output reg         cpu_ready,
-        output reg [31:0]  cpu_rdata,
+        output reg         arbiter_ready,
+        output reg [31:0]  arbiter_rdata,
 
         //================ BRAM slave =================
         output             ram_request,
@@ -124,7 +124,18 @@ module simple_bus(
         output     [31:0]  npu_wdata,
 
         input              npu_ready,
-        input      [31:0]  npu_rdata
+        input      [31:0]  npu_rdata,
+
+        //================ DMA slave =================
+        output             dma_request,
+        output             dma_re,
+        output             dma_we,
+        output     [3:0]   dma_wstrb,
+        output     [7:0]   dma_addr,
+        output     [31:0]  dma_wdata,
+
+        input              dma_ready,
+        input      [31:0]  dma_rdata
     );
 
     //==================================================
@@ -146,6 +157,9 @@ module simple_bus(
     // 0x1000_3000 ~ 0x1000_30FF
     wire sel_irq;
 
+    // 0x1000_4000 ~ 0x1000_40FF
+    wire sel_dma;
+
     // 0x1000_5000 ~ 0x1000_50FF
     wire sel_slow;
 
@@ -165,37 +179,40 @@ module simple_bus(
     
     
     // ram
-    assign sel_ram = (cpu_addr[31:16] == 16'h0001);
+    assign sel_ram = (arbiter_addr[31:16] == 16'h0001);
 
     // gpio
-    assign sel_gpio = (cpu_addr[31:8] == 24'h100000);
+    assign sel_gpio = (arbiter_addr[31:8] == 24'h100000);
     
     // uart
-    assign sel_uart = (cpu_addr[31:8] == 24'h100010);
+    assign sel_uart = (arbiter_addr[31:8] == 24'h100010);
 
     // timer
-    assign sel_timer = (cpu_addr[31:8] == 24'h100020);
+    assign sel_timer = (arbiter_addr[31:8] == 24'h100020);
 
     // irq
-    assign sel_irq = (cpu_addr[31:8] == 24'h100030);
+    assign sel_irq = (arbiter_addr[31:8] == 24'h100030);
+
+    // dma
+    assign sel_dma = (arbiter_addr[31:8] == 24'h100040);
 
     // slow
-    assign sel_slow = (cpu_addr[31:8] == 24'h100050);
+    assign sel_slow = (arbiter_addr[31:8] == 24'h100050);
 
     // npu
-    assign sel_npu = (cpu_addr[31:28] == 4'h4);
+    assign sel_npu = (arbiter_addr[31:28] == 4'h4);
 
     // ddr
-    assign sel_ddr = (cpu_addr[31:27] == 5'b10000);
+    assign sel_ddr = (arbiter_addr[31:27] == 5'b10000);
 
     //==================================================
     // Write / Read request distribution
     //==================================================
 
     // ram
-    assign ram_re = cpu_en && sel_ram && latched_read ;
+    assign ram_re = arbiter_en && sel_ram && latched_read ;
 
-    assign ram_we = cpu_en && sel_ram && latched_write;
+    assign ram_we = arbiter_en && sel_ram && latched_write;
 
     assign ram_wstrb = latched_wstrb;
 
@@ -204,9 +221,9 @@ module simple_bus(
     assign ram_wdata = latched_wdata;
 
     // gpio
-    assign gpio_re = cpu_en && sel_gpio && latched_read;
+    assign gpio_re = arbiter_en && sel_gpio && latched_read;
 
-    assign gpio_we = cpu_en && sel_gpio && latched_write;
+    assign gpio_we = arbiter_en && sel_gpio && latched_write;
 
     assign gpio_wstrb = latched_wstrb;
 
@@ -215,9 +232,9 @@ module simple_bus(
     assign gpio_wdata = latched_wdata;
 
     // uart
-    assign uart_re = cpu_en && sel_uart && latched_read;
+    assign uart_re = arbiter_en && sel_uart && latched_read;
 
-    assign uart_we = cpu_en && sel_uart && latched_write;
+    assign uart_we = arbiter_en && sel_uart && latched_write;
 
     assign uart_wstrb = latched_wstrb;
 
@@ -226,9 +243,9 @@ module simple_bus(
     assign uart_wdata = latched_wdata;
 
     // timer
-    assign timer_re = cpu_en && sel_timer && latched_read;
+    assign timer_re = arbiter_en && sel_timer && latched_read;
 
-    assign timer_we = cpu_en && sel_timer && latched_write;
+    assign timer_we = arbiter_en && sel_timer && latched_write;
 
     assign timer_wstrb = latched_wstrb;
 
@@ -237,9 +254,9 @@ module simple_bus(
     assign timer_wdata = latched_wdata;
 
     // irq
-    assign irq_re = cpu_en && sel_irq && latched_read;
+    assign irq_re = arbiter_en && sel_irq && latched_read;
 
-    assign irq_we = cpu_en && sel_irq && latched_write;
+    assign irq_we = arbiter_en && sel_irq && latched_write;
 
     assign irq_wstrb = latched_wstrb;
 
@@ -247,10 +264,21 @@ module simple_bus(
 
     assign irq_wdata = latched_wdata;
 
-    // slow
-    assign slow_re = cpu_en && sel_slow && latched_read;
+    // dma
+    assign dma_re = arbiter_en && sel_dma && latched_read;
 
-    assign slow_we = cpu_en && sel_slow && latched_write;
+    assign dma_we = arbiter_en && sel_dma && latched_write;
+
+    assign dma_wstrb = latched_wstrb;
+
+    assign dma_addr = latched_addr[7:0];
+
+    assign dma_wdata = latched_wdata;
+
+    // slow
+    assign slow_re = arbiter_en && sel_slow && latched_read;
+
+    assign slow_we = arbiter_en && sel_slow && latched_write;
 
     assign slow_wstrb = latched_wstrb;
 
@@ -259,9 +287,9 @@ module simple_bus(
     assign slow_wdata = latched_wdata;
 
     // npu
-    assign npu_re = cpu_en && sel_npu && latched_read;
+    assign npu_re = arbiter_en && sel_npu && latched_read;
 
-    assign npu_we = cpu_en && sel_npu && latched_write;
+    assign npu_we = arbiter_en && sel_npu && latched_write;
 
     assign npu_wstrb = latched_wstrb;
 
@@ -270,9 +298,9 @@ module simple_bus(
     assign npu_wdata = latched_wdata;
 
     // ddr
-    assign ddr_re = cpu_en && sel_ddr && latched_read;
+    assign ddr_re = arbiter_en && sel_ddr && latched_read;
 
-    assign ddr_we = cpu_en && sel_ddr && latched_write;
+    assign ddr_we = arbiter_en && sel_ddr && latched_write;
 
     assign ddr_wstrb = latched_wstrb;
 
@@ -295,9 +323,10 @@ module simple_bus(
     localparam SEL_UART  = 4'b0011;
     localparam SEL_TIMER = 4'b0100;
     localparam SEL_IRQ   = 4'b0101;
-    localparam SEL_SLOW  = 4'b0110;
-    localparam SEL_NPU   = 4'b0111;
-    localparam SEL_DDR   = 4'b1000;
+    localparam SEL_DMA   = 4'b0110;
+    localparam SEL_SLOW  = 4'b0111;
+    localparam SEL_NPU   = 4'b1000;
+    localparam SEL_DDR   = 4'b1001;
 
     wire transaction_done;
 
@@ -311,19 +340,20 @@ module simple_bus(
             active_sel    <= 4'd0;
             busy          <= 1'b0;
         end else begin
-             if (!busy && cpu_request) begin
+             if (!busy && arbiter_request) begin
                 busy <= 1'b1;
-                latched_addr  <= cpu_addr;
-                latched_wdata <= cpu_wdata;
-                latched_wstrb <= cpu_wstrb;
-                latched_read  <= cpu_read;
-                latched_write <= cpu_write;
+                latched_addr  <= arbiter_addr;
+                latched_wdata <= arbiter_wdata;
+                latched_wstrb <= arbiter_wstrb;
+                latched_read  <= arbiter_read;
+                latched_write <= arbiter_write;
                 
                 if (sel_ram) active_sel <= SEL_RAM;
                 else if (sel_gpio) active_sel <= SEL_GPIO;
                 else if (sel_uart) active_sel <= SEL_UART;
                 else if (sel_timer) active_sel <= SEL_TIMER;
                 else if (sel_irq) active_sel <= SEL_IRQ;
+                else if (sel_dma) active_sel <= SEL_DMA;
                 else if (sel_slow) active_sel <= SEL_SLOW;
                 else if (sel_npu) active_sel <= SEL_NPU;
                 else if (sel_ddr) active_sel <= SEL_DDR;
@@ -340,56 +370,61 @@ module simple_bus(
     assign uart_request  = busy && active_sel == SEL_UART;
     assign timer_request = busy && active_sel == SEL_TIMER;
     assign irq_request   = busy && active_sel == SEL_IRQ;
+    assign dma_request   = busy && active_sel == SEL_DMA;
     assign slow_request  = busy && active_sel == SEL_SLOW;
     assign npu_request   = busy && active_sel == SEL_NPU;
     assign ddr_request   = busy && active_sel == SEL_DDR;
 
-    assign transaction_done = busy && cpu_ready;
+    assign transaction_done = busy && arbiter_ready;
 
     always @(*) begin
-        cpu_ready = 1'b0;
-        cpu_rdata = 32'd0;
+        arbiter_ready = 1'b0;
+        arbiter_rdata = 32'd0;
 
         case (active_sel)
             SEL_RAM: begin
-                cpu_rdata = ram_rdata;
-                cpu_ready = ram_ready;
+                arbiter_rdata = ram_rdata;
+                arbiter_ready = ram_ready;
             end
             SEL_GPIO: begin
-                cpu_rdata = gpio_rdata;
-                cpu_ready = gpio_ready;
+                arbiter_rdata = gpio_rdata;
+                arbiter_ready = gpio_ready;
             end
             SEL_UART: begin
-                cpu_rdata = uart_rdata;
-                cpu_ready = uart_ready;
+                arbiter_rdata = uart_rdata;
+                arbiter_ready = uart_ready;
             end
             SEL_TIMER: begin
-                cpu_rdata = timer_rdata;
-                cpu_ready = timer_ready;
+                arbiter_rdata = timer_rdata;
+                arbiter_ready = timer_ready;
             end
             SEL_IRQ: begin
-                cpu_rdata = irq_rdata;
-                cpu_ready = irq_ready;
+                arbiter_rdata = irq_rdata;
+                arbiter_ready = irq_ready;
+            end
+            SEL_DMA: begin
+                arbiter_rdata = dma_rdata;
+                arbiter_ready = dma_ready;
             end
             SEL_SLOW: begin
-                cpu_rdata = slow_rdata;
-                cpu_ready = slow_ready;
+                arbiter_rdata = slow_rdata;
+                arbiter_ready = slow_ready;
             end
             SEL_NPU: begin
-                cpu_rdata = npu_rdata;
-                cpu_ready = npu_ready;
+                arbiter_rdata = npu_rdata;
+                arbiter_ready = npu_ready;
             end
             SEL_DDR: begin
-                cpu_rdata = ddr_rdata;
-                cpu_ready = ddr_ready;
+                arbiter_rdata = ddr_rdata;
+                arbiter_ready = ddr_ready;
             end
             SEL_NONE: begin
-                cpu_rdata = 32'd0;
-                cpu_ready = 1'd0;
+                arbiter_rdata = 32'd0;
+                arbiter_ready = 1'd0;
             end
             default: begin
-                cpu_rdata = 32'd0;
-                cpu_ready = 1'd0;
+                arbiter_rdata = 32'd0;
+                arbiter_ready = 1'd0;
             end
         endcase
     end
