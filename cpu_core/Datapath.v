@@ -73,6 +73,8 @@ module Datapath (
     // 中断处理变量
     wire status_ie, status_exl;
     wire interrupt_acceptD, eret_selD;
+    wire eret_fireD;
+    wire cp0_write_fireE;
     wire [2:0] pc_src_selD;
     wire [31:0] pc_eretD;
     wire [31:0] cp0_status;
@@ -92,8 +94,11 @@ module Datapath (
     // =======中断处理 && pc_src=======
     assign status_ie = cp0_status[0];
     assign status_exl = cp0_status[1];
-    assign interrupt_acceptD = irq && status_ie && !status_exl && validD && !(validE && cp0_write_enE) && !hold_front;
-    assign eret_selD = validD && eretD;
+    assign cp0_write_fireE = validE && cp0_write_enE;
+    assign interrupt_acceptD = irq && status_ie && !status_exl && validD && !cp0_write_fireE && !hold_front;
+    
+    assign eret_fireD = cpu_en && validD && eretD && !hold_front && !interrupt_acceptD; 
+    assign eret_selD = eret_fireD;
 
     // ** v 4.82 关键bug修复
     // 解决lw DM-E阶段数据前递（L1-L2-A三条指令）时，L2处于M阶段产生总线访问暂停，释放后不满足前递条件的问题
@@ -295,14 +300,14 @@ module Datapath (
     assign jr_selD = validD && !hold_pc && jrD;  // 未暂停时允许 jr 跳转
 
     // ====mfc0 mtc0====
-    assign cp0_weE = cp0_write_enE && validE;
+    assign cp0_weE = cp0_write_fireE && !hold_em; // 暂停条件下不写cp0
 
     cp0 u_cp0(
         .clk(clk),
         .rst(rst),
         .cpu_en(cpu_en),
         .interrupt_accept(interrupt_acceptD),
-        .eret(eretD),
+        .eret(eret_fireD),
         .epc_i(pc_oD),
         .epc_o(pc_eretD),
         .cp0_status(cp0_status),
@@ -339,6 +344,8 @@ module Datapath (
         .branchD(branchD),
         .jrD(jrD),
         .eretD(eretD),
+        .eret_fireD(eret_fireD),
+        .cp0_write_fireE(cp0_write_fireE),
         // out
         .forwardAD(forwardAD), 
         .forwardBD(forwardBD),

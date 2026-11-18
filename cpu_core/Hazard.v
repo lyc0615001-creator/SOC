@@ -28,6 +28,7 @@ module Hazard(
         input reg_write_enE, reg_write_enM, reg_write_enDM,
         input [1:0] reg_data_muxE, reg_data_muxM, reg_data_muxDM,
         input branch_selD, jump_selD, branchD, jr_selD, jrD, eretD,
+        input eret_fireD, cp0_write_fireE,
         input validD, validE, validM, validDM,
         output [1:0] forwardAD, forwardBD,
         output forwardAE, forwardBE,
@@ -88,7 +89,7 @@ module Hazard(
     assign hazardE = validD && validE && reg_write_enE && (reg_data_muxE == 2'b01) && (RF_address3E != 5'b0) && ((used_rsD && RF_address3E == rsD) || (used_rtD && RF_address3E == rtD));
     assign hazardM = validD && validM && reg_write_enM && (reg_data_muxM == 2'b01) && (RF_address3M != 5'b0) && ((used_rsD && RF_address3M == rsD) || (used_rtD && RF_address3M == rtD));
 
-    assign stall = hazardE || ((branchD || jrD) && hazardM);
+    assign stall = hazardE || ((branchD || jrD) && hazardM) || (validD && eretD && cp0_write_fireE);
 
     // beq jump 控制冒险
     // 原因：当前执行beq或jump，需要生成一个redirectD信号，无效之后的两条指令
@@ -97,7 +98,7 @@ module Hazard(
     // D阶段判别架构
     // 判断条件：branch_selD || jump_selD
 
-    assign redirectD = (jump_selD || branch_selD || jr_selD || eretD);
+    assign redirectD = (jump_selD || branch_selD || jr_selD || eret_fireD);
 
 
 
