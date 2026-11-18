@@ -78,7 +78,7 @@ module Datapath (
     wire [31:0] cp0_status;
 
     // 流水线暂停变量
-    wire  hold_pc, hold_imd;
+    wire  hold_pc, hold_imd, hold_front;
 
     assign rsD = instrD[25:21];
     assign rtD = instrD[20:16];
@@ -92,7 +92,7 @@ module Datapath (
     // =======中断处理 && pc_src=======
     assign status_ie = cp0_status[0];
     assign status_exl = cp0_status[1];
-    assign interrupt_acceptD = irq && status_ie && !status_exl && validD && !(validE && cp0_write_enE) && !bus_wait;
+    assign interrupt_acceptD = irq && status_ie && !status_exl && validD && !(validE && cp0_write_enE) && !hold_front;
     assign eret_selD = validD && eretD;
 
     // ** v 4.82 关键bug修复
@@ -292,7 +292,7 @@ module Datapath (
 
     // ====jr====
     assign pc_jrD = RF_data_o1_mux4D;
-    assign jr_selD = validD && !hold_pc && jrD;  // 实为stall && bus_wait
+    assign jr_selD = validD && !hold_pc && jrD;  // 未暂停时允许 jr 跳转
 
     // ====mfc0 mtc0====
     assign cp0_weE = cp0_write_enE && validE;
@@ -384,6 +384,7 @@ module Datapath (
         .bus_wait(bus_wait),
         .interrupt_acceptD(interrupt_acceptD),
         .valid_signs(valid_signs),
+        .hold_front(hold_front),
         .hold_pc(hold_pc),
         .hold_fim(hold_fim),
         .hold_imd(hold_imd),

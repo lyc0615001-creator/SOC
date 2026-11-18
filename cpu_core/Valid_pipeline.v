@@ -29,6 +29,7 @@ module Valid_pipeline(
         input interrupt_acceptD,
         input bus_wait,
         output [5:0] valid_signs,
+        output       hold_front,
         output       hold_pc,
         output       hold_fim,
         output       hold_imd,
@@ -109,9 +110,11 @@ module Valid_pipeline(
     end
 
     // stall data
-    assign hold_pc   = stall || bus_wait;
-    assign hold_fim  = stall || bus_wait;
-    assign hold_imd  = stall || bus_wait;
+    assign hold_front= stall || bus_wait;
+
+    assign hold_pc   = hold_front;
+    assign hold_fim  = hold_front;
+    assign hold_imd  = hold_front;
     assign hold_de   = bus_wait;
     assign hold_em   = bus_wait;
 
