@@ -2,7 +2,7 @@
 module Datapath (
     input clk, rst,
     input cpu_en, irq,
-    input [31:0] instrIM,
+    input [31:0] instrD,
     input [31:0] DM_data_oM,
     input reg_write_enE, reg_write_enM, reg_write_enDM,
     input reg_write_enW, alu_src_muxE,
@@ -14,17 +14,14 @@ module Datapath (
     input [3:0] alu_controlE,
     input jrD, cp0_write_enE, eretD,
     input bus_wait,
-    output [31:0] pc_oF, early_resultM, DM_data_iM, instrD,
-    output hold_de, hold_em, hold_fim, validM,
+    output [31:0] pc_oF, early_resultM, DM_data_iM,
+    output hold_de, hold_em, hold_fd, validM,
     output bubble_e, bubble_dm,
     output validW, stall
 );
 
     // F阶段变量
     wire [31:0] pc_plus4F;
-
-     // IM阶段变量
-    wire [31:0] pc_plus4IM;
     
     // D阶段变量
     wire zeroD, branch_selD, jump_selD, jr_selD;
@@ -62,8 +59,8 @@ module Datapath (
     wire [31:0] ForwardValueE, ForwardValueM, ForwardValueDM;
 
     // Valid_pipeline 变量
-    wire validIM, validD, validE, validM, validDM;
-    wire [5:0] valid_signs;
+    wire validD, validE, validM, validDM;
+    wire [4:0] valid_signs;
     wire rf_write_enW;
 
     // 前递E变量
@@ -80,7 +77,7 @@ module Datapath (
     wire [31:0] cp0_status;
 
     // 流水线暂停变量
-    wire  hold_pc, hold_imd, hold_front;
+    wire  hold_pc, hold_front;
 
     assign rsD = instrD[25:21];
     assign rtD = instrD[20:16];
@@ -156,14 +153,8 @@ module Datapath (
         .add_o(pc_plus4F)
         );
     
-    // F -> IM 指令存储器延迟同步
-    // 同步变量 pc_plus4F
-    flopenrc #(32) u_flopenrc_pc_plus4IM(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_fim), .clear(1'b0), .din(pc_plus4F), .dout(pc_plus4IM));
-
-    // IM -> D 流水线触发器
-    // 延迟变量 instrIM pc_plus4IM
-    flopenrc #(32) u_flopenrc_instrD(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_imd), .clear(1'b0), .din(instrIM), .dout(instrD));
-    flopenrc #(32) u_flopenrc_pc_plus4D(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_imd), .clear(1'b0), .din(pc_plus4IM), .dout(pc_plus4D));
+    // v 5.1 更改为F-D流水
+    flopenrc #(32) u_flopenrc_pc_plus4D(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_fd), .clear(1'b0), .din(pc_plus4F), .dout(pc_plus4D));
 
     assign rf_write_enW = validW && reg_write_enW;
     Regfile u_Regfile(
@@ -211,13 +202,10 @@ module Datapath (
     flopenrc #(5) u_flopenrc_RF_address3W(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(RF_address3DM), .dout(RF_address3W));
     flopenrc #(32) u_flopenrc_RF_data_iW(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(RF_data_iDM), .dout(RF_data_iW));
 
-    //  pc F->M
-    // wire [31:0] pc_oD, pc_oE, pc_oIM;
-    wire [31:0] pc_oIM, pc_oD;
-    flopenrc #(32) u_flopenrc_pc_oIM(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_fim), .clear(1'b0), .din(pc_oF), .dout(pc_oIM));
-    flopenrc #(32) u_flopenrc_pc_oD(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_imd), .clear(1'b0), .din(pc_oIM), .dout(pc_oD));
-    // flopenrc #(32) u_flopenrc_pc_oE(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(pc_oD), .dout(pc_oE));
-    // flopenrc #(32) u_flopenrc_pc_oM(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(pc_oE), .dout(pc_oM));
+    //  pc F-> D
+    wire [31:0] pc_oD;
+    flopenrc #(32) u_flopenrc_pc_oD(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_fd), .clear(1'b0), .din(pc_oF), .dout(pc_oD));
+
 
 
     // ====R====
@@ -380,7 +368,7 @@ module Datapath (
     );
 
     // valid_pipeline 
-    assign {validIM, validD, validE, validM, validDM, validW} = valid_signs;
+    assign {validD, validE, validM, validDM, validW} = valid_signs;
 
     Valid_pipeline u_Valid_pipeline(
         .clk(clk),
@@ -393,8 +381,7 @@ module Datapath (
         .valid_signs(valid_signs),
         .hold_front(hold_front),
         .hold_pc(hold_pc),
-        .hold_fim(hold_fim),
-        .hold_imd(hold_imd),
+        .hold_fd(hold_fd),
         .hold_de(hold_de),
         .hold_em(hold_em),
         .bubble_e(bubble_e),

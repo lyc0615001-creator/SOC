@@ -11,7 +11,7 @@ module CPU_TOP (
     
     output wire rom_en, // 指令读使能
     output wire [31:0] pc_oF, // 指令读地址
-    input [31:0] instrIM, //获得指令
+    input [31:0] instrD, //获得指令
 
     input  irq, // 中断
 
@@ -48,7 +48,7 @@ module CPU_TOP (
       .rst(rst),
       .irq(irq),
       .cpu_en(cpu_en),
-      .instrIM(instrIM),
+      .instrD(instrD),
       .DM_data_oM(DM_data_oM),
       .bus_wait(bus_wait),
       // out

@@ -116,7 +116,7 @@ module soc(
         // instr
         .rom_en(rom_en),
         .pc_oF(pc_oF),
-        .instrIM(instr),
+        .instrD(instr),
         .cpu_requestM(cpu_request)
     );
 

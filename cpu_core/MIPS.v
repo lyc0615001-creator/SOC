@@ -2,7 +2,7 @@ module MIPS (
     input clk, rst,
     input cpu_en,
     input irq,
-    input [31:0] instrIM,
+    input [31:0] instrD,
     input [31:0] DM_data_oM,
     input bus_wait,
     output mem_write_en_effM, mem_read_en_effM,
@@ -20,8 +20,7 @@ module MIPS (
     wire used_rsD, used_rtD;
     wire imm_zero_extD, branch_neD;
     wire [3:0] alu_controlE;
-    wire [31:0] instrD;
-    wire validM, mem_write_enM, mem_read_enM, hold_de, hold_em, hold_fim;
+    wire validM, mem_write_enM, mem_read_enM, hold_de, hold_em, hold_fd;
     wire jrD, cp0_write_enE, eretD;
     wire bubble_e, bubble_dm;
 
@@ -30,7 +29,7 @@ module MIPS (
         .rst(rst),
         .irq(irq),
         .cpu_en(cpu_en),
-        .instrIM(instrIM),
+        .instrD(instrD),
         .DM_data_oM(DM_data_oM),
         .reg_write_enE(reg_write_enE), 
         .reg_write_enM(reg_write_enM), 
@@ -56,8 +55,7 @@ module MIPS (
         .pc_oF(pc_oF),
         .early_resultM(early_resultM),
         .DM_data_iM(DM_data_iM),
-        .instrD(instrD),
-        .hold_fim(hold_fim), 
+        .hold_fd(hold_fd), 
         .hold_de(hold_de), 
         .hold_em(hold_em), 
         .validM(validM),
@@ -70,7 +68,7 @@ module MIPS (
     // 让valid 只生效在处理器内部
     assign mem_write_en_effM = validM && mem_write_enM;
     assign mem_read_en_effM = validM && mem_read_enM;
-    assign rom_en = cpu_en && ~hold_fim;
+    assign rom_en = cpu_en && ~hold_fd;
 
     Controller u_Controller(
         .clk(clk),
