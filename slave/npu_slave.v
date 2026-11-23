@@ -39,7 +39,7 @@ module npu_slave(
     // A write
     wire         a_wr_en;
     wire  [5:0]  a_wr_addr;
-    wire  [7:0]  awire;
+    wire  [7:0]  a_wr_data;
     // B write
     wire         b_wr_en;
     wire  [5:0]  b_wr_addr;
@@ -49,6 +49,7 @@ module npu_slave(
     wire [5:0]  c_rd_addr;
     wire [31:0] c_rd_data;
 
+    wire npu_start;
     wire npu_busy;
     wire npu_done;
 

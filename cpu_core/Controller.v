@@ -59,6 +59,7 @@ module Controller (
     assist_decode u_assist_decode(
         .op_code(op_code),
         .funct(funct),
+        .rs(rs),
         .used_rs(used_rsD),
         .used_rt(used_rtD)
     );

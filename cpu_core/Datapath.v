@@ -73,12 +73,14 @@ module Datapath (
     // 中断处理变量
     wire status_ie, status_exl;
     wire interrupt_acceptD, eret_selD;
+    wire eret_fireD;
+    wire cp0_write_fireE;
     wire [2:0] pc_src_selD;
     wire [31:0] pc_eretD;
     wire [31:0] cp0_status;
 
     // 流水线暂停变量
-    wire  hold_pc, hold_imd;
+    wire  hold_pc, hold_imd, hold_front;
 
     assign rsD = instrD[25:21];
     assign rtD = instrD[20:16];
@@ -92,8 +94,32 @@ module Datapath (
     // =======中断处理 && pc_src=======
     assign status_ie = cp0_status[0];
     assign status_exl = cp0_status[1];
-    assign interrupt_acceptD = irq && status_ie && !status_exl && validD && !(validE && cp0_write_enE) && !bus_wait;
-    assign eret_selD = validD && eretD;
+    assign cp0_write_fireE = validE && cp0_write_enE;
+    assign interrupt_acceptD = irq && status_ie && !status_exl && validD && !cp0_write_fireE && !hold_front;
+    
+    assign eret_fireD = cpu_en && validD && eretD && !hold_front && !interrupt_acceptD; 
+    assign eret_selD = eret_fireD;
+
+    // ** v 4.82 关键bug修复
+    // 解决lw DM-E阶段数据前递（L1-L2-A三条指令）时，L2处于M阶段产生总线访问暂停，释放后不满足前递条件的问题
+    // 解决措施：将前递修改为：修改数据源,用特殊流水代替普通流水
+    repair_flopenrc u_repair_flopenrc(
+        .clk(clk),
+        .rst(rst),
+        .cpu_en(cpu_en),
+        .en(~hold_de),
+        .clear(bubble_e),
+
+        .bus_wait(bus_wait),
+        .forwardAE(forwardAE),
+        .forwardBE(forwardBE),
+        .RF_data_o1_mux4D(RF_data_o1_mux4D),
+        .RF_data_o2_mux4D(RF_data_o2_mux4D),
+        .RF_data_iDM(RF_data_iDM),
+
+        .RF_data_o1_mux4E(RF_data_o1_mux4E),
+        .RF_data_o2_mux4E(RF_data_o2_mux4E)
+    );
 
     // pc_src_selD
     pc_src u_pc_src(
@@ -156,8 +182,8 @@ module Datapath (
 
     // D -> E 流水线触发器
     // 延迟变量 RF_data_o1_mux4D RF_data_o2_mux4D imm_extD rsD rtD rdD pc_plus4D shamtD
-    flopenrc #(32) u_flopenrc_RF_data_o1_mux4E(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_de), .clear(bubble_e), .din(RF_data_o1_mux4D), .dout(RF_data_o1_mux4E));
-    flopenrc #(32) u_flopenrc_RF_data_o2_mux4E(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_de), .clear(bubble_e), .din(RF_data_o2_mux4D), .dout(RF_data_o2_mux4E));
+    // flopenrc #(32) u_flopenrc_RF_data_o1_mux4E(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_de), .clear(bubble_e), .din(RF_data_o1_mux4D), .dout(RF_data_o1_mux4E));
+    // flopenrc #(32) u_flopenrc_RF_data_o2_mux4E(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_de), .clear(bubble_e), .din(RF_data_o2_mux4D), .dout(RF_data_o2_mux4E));
     flopenrc #(32) u_flopenrc_sign_extE(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_de), .clear(bubble_e), .din(imm_extD), .dout(imm_extE));
 
     flopenrc #(5) u_flopenrc_rsE(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_de), .clear(bubble_e), .din(rsD), .dout(rsE));
@@ -271,17 +297,17 @@ module Datapath (
 
     // ====jr====
     assign pc_jrD = RF_data_o1_mux4D;
-    assign jr_selD = validD && !hold_pc && jrD;  // 实为stall && bus_wait
+    assign jr_selD = validD && !hold_pc && jrD;  // 未暂停时允许 jr 跳转
 
     // ====mfc0 mtc0====
-    assign cp0_weE = cp0_write_enE && validE;
+    assign cp0_weE = cp0_write_fireE && !hold_em; // 暂停条件下不写cp0
 
     cp0 u_cp0(
         .clk(clk),
         .rst(rst),
         .cpu_en(cpu_en),
         .interrupt_accept(interrupt_acceptD),
-        .eret(eretD),
+        .eret(eret_fireD),
         .epc_i(pc_oD),
         .epc_o(pc_eretD),
         .cp0_status(cp0_status),
@@ -318,6 +344,8 @@ module Datapath (
         .branchD(branchD),
         .jrD(jrD),
         .eretD(eretD),
+        .eret_fireD(eret_fireD),
+        .cp0_write_fireE(cp0_write_fireE),
         // out
         .forwardAD(forwardAD), 
         .forwardBD(forwardBD),
@@ -363,6 +391,7 @@ module Datapath (
         .bus_wait(bus_wait),
         .interrupt_acceptD(interrupt_acceptD),
         .valid_signs(valid_signs),
+        .hold_front(hold_front),
         .hold_pc(hold_pc),
         .hold_fim(hold_fim),
         .hold_imd(hold_imd),
