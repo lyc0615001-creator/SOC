@@ -145,12 +145,10 @@ module axil_reg_hub (
 );
 
     localparam IDLE          = 3'd0;
-    localparam COLLECT_WRITE = 3'd1;
-    localparam EXEC_WRITE    = 3'd2;
-    localparam RESP_WRITE    = 3'd3;
-    localparam COLLECT_READ  = 3'd4;
-    localparam EXEC_READ     = 3'd5;
-    localparam RESP_READ     = 3'd6;
+    localparam EXEC_WRITE    = 3'd1;
+    localparam RESP_WRITE    = 3'd2;
+    localparam EXEC_READ     = 3'd3;
+    localparam RESP_READ     = 3'd4;
 
     localparam RESP_OKAY   = 2'b00;
     localparam RESP_SLVERR = 2'b10;
@@ -165,16 +163,18 @@ module axil_reg_hub (
     reg [31:0] wdata_reg;
     reg [3:0]  wstrb_reg;
     reg        w_stored;
+
+    reg        ar_stored;
     
     // R
     reg [31:0] araddr_reg;
 
 
     // 状态判断
-    assign s_axi_awready = (state == COLLECT_WRITE) && !aw_stored;
-    assign s_axi_wready  = (state == COLLECT_WRITE) && !w_stored;
+    assign s_axi_awready = (state == IDLE) && !aw_stored;
+    assign s_axi_wready  = (state == IDLE) && !w_stored;
 
-    assign s_axi_arready = (state == COLLECT_READ);
+    assign s_axi_arready = (state == IDLE) && !ar_stored;
 
     assign s_axi_bvalid  = (state == RESP_WRITE);
     assign s_axi_rvalid  = (state == RESP_READ);
@@ -431,6 +431,13 @@ module axil_reg_hub (
     wire w_fire  = s_axi_wvalid  && s_axi_wready;
     wire ar_fire = s_axi_arvalid && s_axi_arready;
 
+    wire write_complete;
+    wire read_complete;
+
+    assign write_complete = (aw_stored || aw_fire) && (w_stored  || w_fire);
+
+    assign read_complete = ar_stored || ar_fire;
+
     // FSM
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -443,6 +450,7 @@ module axil_reg_hub (
 
             aw_stored  <= 1'b0;
             w_stored   <= 1'b0;
+            ar_stored  <= 1'b0;
 
             s_axi_bresp <= RESP_DECERR;
             s_axi_rresp <= RESP_DECERR;
@@ -451,30 +459,33 @@ module axil_reg_hub (
         end else begin
             case (state)
                 IDLE: begin
-                    if (s_axi_awvalid || s_axi_wvalid) begin
-                        state <= COLLECT_WRITE;
-                    end else if (s_axi_arvalid) begin
-                        state <= COLLECT_READ; 
-                    end
-                end
-                COLLECT_WRITE: begin
                     if (aw_fire) begin
                         awaddr_reg <= s_axi_awaddr;
-
                         aw_stored  <= 1'b1;
                     end
+
                     if (w_fire) begin
                         wdata_reg <= s_axi_wdata;
                         wstrb_reg <= s_axi_wstrb;
-
                         w_stored  <= 1'b1;
                     end
 
-                    if ((aw_stored || aw_fire)  && (w_stored || w_fire)) begin
+                    if (ar_fire) begin
+                        araddr_reg <= s_axi_araddr;
+                        ar_stored  <= 1'b1;
+                    end
+
+                    if (write_complete) begin
                         state <= EXEC_WRITE;
 
-                        aw_stored  <= 1'b0;
-                        w_stored   <= 1'b0;
+                        aw_stored <= 1'b0;
+                        w_stored  <= 1'b0;
+
+                    end
+                    else if (read_complete) begin
+                        state      <= EXEC_READ;
+
+                        ar_stored  <= 1'b0;
                     end
                 end
                 EXEC_WRITE: begin
@@ -572,13 +583,6 @@ module axil_reg_hub (
                 RESP_WRITE: begin
                     if (s_axi_bvalid && s_axi_bready) begin
                         state <= IDLE;
-                    end
-                end
-                COLLECT_READ: begin
-                    if (ar_fire) begin
-                        state <= EXEC_READ;
-
-                        araddr_reg <= s_axi_araddr;
                     end
                 end
                 EXEC_READ: begin
@@ -688,6 +692,7 @@ module axil_reg_hub (
 
                     aw_stored  <= 1'b0;
                     w_stored   <= 1'b0;
+                    ar_stored  <= 1'b0;
 
                     s_axi_bresp <= RESP_DECERR;
                     s_axi_rresp <= RESP_DECERR;
