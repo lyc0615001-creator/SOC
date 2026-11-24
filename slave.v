@@ -46,6 +46,7 @@ module slave(
 
         output             cpu_ready,
         output     [31:0]  cpu_rdata,
+        output     [1:0]   cpu_resp,
 
         output             cpu_irq,
 
@@ -81,6 +82,44 @@ module slave(
 
         wire              arbiter_ready;
         wire      [31:0]  arbiter_rdata;
+        wire      [1:0]   arbiter_resp;
+
+        wire              arbiter_source;
+
+        //================ AXI4-Lite =================
+        // AW
+        wire      [31:0]  axi_awaddr;
+        wire              axi_awvalid;
+        wire              axi_awready;
+
+        // W
+        wire      [31:0]  axi_wdata;
+        wire      [3:0]   axi_wstrb;
+        wire              axi_wvalid;
+        wire              axi_wready;
+
+        // B
+        wire      [1:0]   axi_bresp;
+        wire              axi_bvalid;
+        wire              axi_bready;
+
+        // AR
+        wire      [31:0]  axi_araddr;
+        wire              axi_arvalid;
+        wire              axi_arready;
+
+        // R
+        wire      [31:0]  axi_rdata;
+        wire      [1:0]   axi_rresp;
+        wire              axi_rvalid;
+        wire              axi_rready;
+
+        // AXI4-Lite monitor
+        wire              txn_done;
+        wire              txn_source;
+        wire              txn_write;
+        wire     [31:0]   txn_addr;
+        wire     [1:0]    txn_resp;
 
         //================ BRAM slave =================
         wire              ram_request;
@@ -139,17 +178,6 @@ module slave(
         wire              irq_ready;
         wire      [31:0]  irq_rdata;
 
-        //================ SLOW slave =================
-        wire              slow_request;
-        wire              slow_re;
-        wire              slow_we;
-        wire      [7:0]   slow_addr;
-        wire      [3:0]   slow_wstrb;
-        wire      [31:0]  slow_wdata;
-
-        wire              slow_ready;
-        wire      [31:0]  slow_rdata;
-
         //================ DDR slave =================
         wire              ddr_request;
         wire              ddr_re;
@@ -194,6 +222,7 @@ module slave(
 
         wire              dma_m_ready;
         wire      [31:0]  dma_m_rdata;
+        wire      [1:0]   dma_m_resp;
 
         wire              dma_irq;
 
@@ -201,12 +230,25 @@ module slave(
         wire              perf_request;
         wire              perf_re;
         wire              perf_we;
-        wire      [31:0]  perf_addr;
+        wire      [7:0]   perf_addr;
         wire      [3:0]   perf_wstrb;
         wire      [31:0]  perf_wdata;
 
         wire              perf_ready;
         wire      [31:0]  perf_rdata;
+
+        //================ FAULT slave =================
+        wire              fault_request;
+        wire              fault_re;
+        wire              fault_we;
+        wire      [3:0]   fault_wstrb;
+        wire      [7:0]   fault_addr;
+        wire      [31:0]  fault_wdata;
+
+        wire              fault_ready;
+        wire      [31:0]  fault_rdata;
+
+
 
         //==================================================
         // instruction instance
@@ -234,6 +276,7 @@ module slave(
 
             .cpu_ready(cpu_ready),
             .cpu_rdata(cpu_rdata),
+            .cpu_resp(cpu_resp),
 
             .dma_request(dma_m_request),
             .dma_re(dma_m_re),
@@ -244,37 +287,118 @@ module slave(
 
             .dma_ready(dma_m_ready),
             .dma_rdata(dma_m_rdata),
+            .dma_resp(dma_m_resp),
 
             .arbiter_request(arbiter_request),
-            .arbiter_read(arbiter_read),
-            .arbiter_write(arbiter_write),
-            .arbiter_wstrb(arbiter_wstrb),
-            .arbiter_addr(arbiter_addr),
-            .arbiter_wdata(arbiter_wdata),
-
-            .arbiter_ready(arbiter_ready),
-            .arbiter_rdata(arbiter_rdata)
-        );
-
-        //==================================================
-        // bus instance
-        //==================================================
-
-        simple_bus u_simple_bus(
-            .clk(clk_cpu_50),
-            .rst(cpu_rst_n),
-            .arbiter_en(cpu_en),
-
-            //================ CPU master =================
-            .arbiter_request(arbiter_request),
-            .arbiter_read(arbiter_read),
-            .arbiter_write(arbiter_write),
+            .arbiter_read(arbiter_re),
+            .arbiter_write(arbiter_we),
             .arbiter_wstrb(arbiter_wstrb),
             .arbiter_addr(arbiter_addr),
             .arbiter_wdata(arbiter_wdata),
 
             .arbiter_ready(arbiter_ready),
             .arbiter_rdata(arbiter_rdata),
+            .arbiter_resp(arbiter_resp),
+
+            .arbiter_source(arbiter_source)
+        );
+
+        //==================================================
+        // bus instance
+        //==================================================
+
+        // axi adapter
+        simple_to_axil u_simple_to_axil(
+            .clk(clk_cpu_50),
+            .rst_n(cpu_rst_n),
+            .s_source(arbiter_source), // 0: CPU, 1: DMA
+
+            // =========================
+            // simple request side
+            // =========================
+            .s_request(arbiter_request),
+            .s_read(arbiter_re),
+            .s_write(arbiter_we),
+            .s_addr(arbiter_addr),
+            .s_wdata(arbiter_wdata),
+            .s_wstrb(arbiter_wstrb),
+
+            .s_ready(arbiter_ready),
+            .s_rdata(arbiter_rdata),
+            .s_resp(arbiter_resp),
+
+            // =========================
+            // AXI4-Lite master
+            // =========================
+
+            // AW
+            .m_axi_awaddr(axi_awaddr),
+            .m_axi_awvalid(axi_awvalid),
+            .m_axi_awready(axi_awready),
+
+            // W
+            .m_axi_wdata(axi_wdata),
+            .m_axi_wstrb(axi_wstrb),
+            .m_axi_wvalid(axi_wvalid),
+            .m_axi_wready(axi_wready),
+
+            // B
+            .m_axi_bresp(axi_bresp),
+            .m_axi_bvalid(axi_bvalid),
+            .m_axi_bready(axi_bready),
+
+            // AR
+            .m_axi_araddr(axi_araddr),
+            .m_axi_arvalid(axi_arvalid),
+            .m_axi_arready(axi_arready),
+
+            // R
+            .m_axi_rdata(axi_rdata),
+            .m_axi_rresp(axi_rresp),
+            .m_axi_rvalid(axi_rvalid),
+            .m_axi_rready(axi_rready),
+
+            // =========================
+            // AXI4-Lite monitor
+            // =========================
+
+            .txn_done(txn_done),
+            .txn_source(txn_source),
+            .txn_write(txn_write),
+            .txn_addr(txn_addr),
+            .txn_resp(txn_resp)
+        );
+
+        axil_reg_hub u_axil_reg_hub(
+            .clk(clk_cpu_50),
+            .rst_n(cpu_rst_n),
+
+            //================ axi master =================
+            .s_axi_awaddr(axi_awaddr),
+            .s_axi_awvalid(axi_awvalid),
+            .s_axi_awready(axi_awready),
+
+            // W
+            .s_axi_wdata(axi_wdata),
+            .s_axi_wstrb(axi_wstrb),
+            .s_axi_wvalid(axi_wvalid),
+            .s_axi_wready(axi_wready),
+
+            // B
+            .s_axi_bresp(axi_bresp),
+            .s_axi_bvalid(axi_bvalid),
+            .s_axi_bready(axi_bready),
+
+            // AR
+            .s_axi_araddr(axi_araddr),
+            .s_axi_arvalid(axi_arvalid),
+            .s_axi_arready(axi_arready),
+
+            // R
+            .s_axi_rdata(axi_rdata),
+            .s_axi_rresp(axi_rresp),
+            .s_axi_rvalid(axi_rvalid),
+            .s_axi_rready(axi_rready),
 
             //================ BRAM slave =================
             .ram_request(ram_request),
@@ -320,7 +444,7 @@ module slave(
             .timer_ready(timer_ready),
             .timer_rdata(timer_rdata),
 
-            //================ TIMER slave =================
+            //================ IRQ slave =================
             .irq_request(irq_request),
             .irq_re(irq_re),
             .irq_we(irq_we),
@@ -330,19 +454,8 @@ module slave(
 
             .irq_ready(irq_ready),
             .irq_rdata(irq_rdata),
-
-            //================ SLOW slave =================
-            .slow_request(slow_request),
-            .slow_re(slow_re),
-            .slow_we(slow_we),
-            .slow_wstrb(slow_wstrb),
-            .slow_addr(slow_addr),
-            .slow_wdata(slow_wdata),
-
-            .slow_ready(slow_ready),
-            .slow_rdata(slow_rdata),
             
-            //================ SLOW slave =================
+            //================ DDR slave =================
             .ddr_request(ddr_request),
             .ddr_re(ddr_re),
             .ddr_we(ddr_we),
@@ -352,17 +465,6 @@ module slave(
 
             .ddr_ready(ddr_ready),
             .ddr_rdata(ddr_rdata),
-
-            //================ PERF slave =================
-            .perf_request(perf_request),
-            .perf_re(perf_re),
-            .perf_we(perf_we),
-            .perf_wstrb(perf_wstrb),
-            .perf_addr(perf_addr),
-            .perf_wdata(perf_wdata),
-
-            .perf_ready(perf_ready),
-            .perf_rdata(perf_rdata),
 
             //================ NPU slave =================
             .npu_request(npu_request),
@@ -384,7 +486,29 @@ module slave(
             .dma_wdata(dma_s_wdata),
 
             .dma_ready(dma_s_ready),
-            .dma_rdata(dma_s_rdata)
+            .dma_rdata(dma_s_rdata),
+
+            //================ PERF slave =================
+            .perf_request(perf_request),
+            .perf_re(perf_re),
+            .perf_we(perf_we),
+            .perf_wstrb(perf_wstrb),
+            .perf_addr(perf_addr),
+            .perf_wdata(perf_wdata),
+
+            .perf_ready(perf_ready),
+            .perf_rdata(perf_rdata),
+
+            //================ FAULT slave =================
+            .fault_request(fault_request),
+            .fault_re(fault_re),
+            .fault_we(fault_we),
+            .fault_wstrb(fault_wstrb),
+            .fault_addr(fault_addr),
+            .fault_wdata(fault_wdata),
+
+            .fault_ready(fault_ready),
+            .fault_rdata(fault_rdata) 
         );
 
 
@@ -490,23 +614,6 @@ module slave(
         );
 
         //==================================================
-        // SLOW instance   ***ERROR !!!! 写数据与ready不同步
-        //==================================================
-        slow_slave tb_u_slow_slave(
-            .clk(clk_cpu_50),
-            .rst(cpu_rst_n),
-            .req(slow_request),
-            .read(slow_re),
-            .write(slow_we),
-            .wstrb(slow_wstrb),
-            .addr(slow_addr),
-            .wdata(slow_wdata),
-
-            .rdata(slow_rdata),
-            .ready(slow_ready)
-        );
-
-        //==================================================
         // ddr_subsystem instance   
         //==================================================
         ddr_subsystem u_ddr_subsystem(
@@ -598,6 +705,7 @@ module slave(
 
             .m_ready(dma_m_ready),
             .m_rdata(dma_m_rdata),
+            .m_resp(dma_m_resp),
 
             // =========================
             // Status
@@ -624,6 +732,32 @@ module slave(
 
             .perf_ready(perf_ready),
             .perf_rdata(perf_rdata)
+        );
+
+        //==================================================
+        // FAULT instance
+        //==================================================
+        fault_status u_fault_status (
+            .clk           (clk_cpu_50),
+            .rst_n         (cpu_rst_n),
+
+            // transaction monitor
+            .txn_done      (txn_done),
+            .txn_source    (txn_source),
+            .txn_write     (txn_write),
+            .txn_addr      (txn_addr),
+            .txn_resp      (txn_resp),
+
+            // MMIO
+            .fault_request (fault_request),
+            .fault_re      (fault_re),
+            .fault_we      (fault_we),
+            .fault_wstrb   (fault_wstrb),
+            .fault_addr    (fault_addr),
+            .fault_wdata   (fault_wdata),
+
+            .fault_ready   (fault_ready),
+            .fault_rdata   (fault_rdata)
         );
 
 endmodule

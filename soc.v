@@ -54,6 +54,7 @@ module soc(
     wire      [31:0]  cpu_addr;
     wire      [31:0]  cpu_wdata;
     wire      [31:0]  cpu_rdata;
+    wire      [1:0]   cpu_resp;
 
     wire              rom_en;
     wire      [31:0]  pc_oF;
@@ -153,6 +154,7 @@ module soc(
 
         .cpu_ready(cpu_ready),
         .cpu_rdata(cpu_rdata),
+        .cpu_resp(cpu_resp),
 
         .cpu_irq(cpu_irq),
 

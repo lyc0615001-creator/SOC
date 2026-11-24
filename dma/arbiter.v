@@ -33,6 +33,7 @@ module arbiter(
 
         output reg         cpu_ready,
         output reg [31:0]  cpu_rdata,
+        output reg [1:0]   cpu_resp,
 
         input  wire        dma_request,
         input  wire        dma_re,
@@ -43,6 +44,7 @@ module arbiter(
 
         output reg         dma_ready,
         output reg  [31:0] dma_rdata,
+        output reg  [1:0]  dma_resp,
 
         output reg         arbiter_request,
         output reg         arbiter_read,
@@ -52,7 +54,11 @@ module arbiter(
         output reg [31:0]  arbiter_wdata,
 
         input              arbiter_ready,
-        input     [31:0]   arbiter_rdata
+        input     [31:0]   arbiter_rdata,
+        input     [1:0]    arbiter_resp,
+
+        // fault monitor
+        output reg         arbiter_source  // 0 CPU 1 DMA
     );
 
     localparam IDLE = 1'b0;
@@ -65,12 +71,15 @@ module arbiter(
     wire [3:0] req;
     wire [3:0] grant;
 
-    assign req = {2'd0, cpu_request, dma_request};
+    assign req = {2'd0, dma_request, cpu_request};
 
     // 定义事务
     wire start_affair;
+    wire grant_en;
 
     assign start_affair = |req;
+
+    assign grant_en = (state == IDLE) && start_affair;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -107,26 +116,19 @@ module arbiter(
 
         cpu_ready = 1'b0;
         cpu_rdata = 32'd0;
+        cpu_resp  = 2'd0;
 
         dma_ready = 1'b0;
         dma_rdata = 32'd0;
+        dma_resp  = 2'd0;
+
+        arbiter_source = 1'b0;
 
         case (state)
             IDLE: begin
                 if (start_affair) begin
                     case (grant)
                         4'b0001: begin
-                            arbiter_request = dma_request;
-                            arbiter_read    = dma_re;
-                            arbiter_write   = dma_we;
-                            arbiter_wstrb   = dma_wstrb;
-                            arbiter_addr    = dma_addr;
-                            arbiter_wdata   = dma_wdata;
-
-                            dma_ready       = arbiter_ready;
-                            dma_rdata       = arbiter_rdata; 
-                        end
-                        4'b0010: begin
                             arbiter_request = cpu_request;
                             arbiter_read    = cpu_read;
                             arbiter_write   = cpu_write;
@@ -136,6 +138,23 @@ module arbiter(
 
                             cpu_ready       = arbiter_ready;
                             cpu_rdata       = arbiter_rdata;
+                            cpu_resp        = arbiter_resp;
+
+                            arbiter_source  = 1'b0;
+                        end
+                        4'b0010: begin
+                            arbiter_request = dma_request;
+                            arbiter_read    = dma_re;
+                            arbiter_write   = dma_we;
+                            arbiter_wstrb   = dma_wstrb;
+                            arbiter_addr    = dma_addr;
+                            arbiter_wdata   = dma_wdata;
+
+                            dma_ready       = arbiter_ready;
+                            dma_rdata       = arbiter_rdata; 
+                            dma_resp        = arbiter_resp;
+
+                            arbiter_source  = 1'b1;
                         end
                         default: ;
                     endcase
@@ -144,17 +163,6 @@ module arbiter(
             BUSY: begin
                 case (owner)
                     4'b0001: begin
-                        arbiter_request = dma_request;
-                        arbiter_read    = dma_re;
-                        arbiter_write   = dma_we;
-                        arbiter_wstrb   = dma_wstrb;
-                        arbiter_addr    = dma_addr;
-                        arbiter_wdata   = dma_wdata;
-
-                        dma_ready       = arbiter_ready;
-                        dma_rdata       = arbiter_rdata; 
-                    end
-                    4'b0010: begin
                         arbiter_request = cpu_request;
                         arbiter_read    = cpu_read;
                         arbiter_write   = cpu_write;
@@ -164,6 +172,23 @@ module arbiter(
 
                         cpu_ready       = arbiter_ready;
                         cpu_rdata       = arbiter_rdata;
+                        cpu_resp        = arbiter_resp;
+
+                        arbiter_source  = 1'b0;
+                    end
+                    4'b0010: begin
+                        arbiter_request = dma_request;
+                        arbiter_read    = dma_re;
+                        arbiter_write   = dma_we;
+                        arbiter_wstrb   = dma_wstrb;
+                        arbiter_addr    = dma_addr;
+                        arbiter_wdata   = dma_wdata;
+
+                        dma_ready       = arbiter_ready;
+                        dma_rdata       = arbiter_rdata;
+                        dma_resp        = arbiter_resp; 
+
+                        arbiter_source  = 1'b1;
                     end
                     default: ;
                 endcase
@@ -172,10 +197,11 @@ module arbiter(
         endcase
     end
     
-    FIXED_ARBITER u_FIXED_ARBITER(
+    ROUND_ROBIN_ARBITER U_ROUND_ROBIN_ARBITER(
+        .clk(clk),
+        .rst_n(rst_n),
+        .grant_en(grant_en),
         .req(req),
         .grant(grant)
     );
-
-
 endmodule

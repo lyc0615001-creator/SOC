@@ -49,6 +49,7 @@ module dma_slave(
 
     input  wire        m_ready,
     input  wire [31:0] m_rdata,
+    input  wire [1:0]  m_resp,
 
     // =========================
     // Status
@@ -86,6 +87,7 @@ module dma_slave(
 
         .m_ready(m_ready),
         .m_rdata(m_rdata),
+        .m_resp(m_resp),
 
         // =========================
         // Status
