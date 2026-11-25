@@ -12,15 +12,15 @@ module MIPS (
     output [31:0] DM_data_iM,
     output validW, stall
 );
-    wire reg_write_enE, reg_write_enM, reg_write_enDM;
+    wire reg_write_enE, reg_write_enEI, reg_write_enM, reg_write_enDM;
     wire reg_write_enW, alu_src_muxE;
     wire [1:0] reg_dst_muxE;
-    wire [1:0] reg_data_muxE, reg_data_muxM, reg_data_muxDM;
+    wire [1:0] reg_data_muxE, reg_data_muxEI, reg_data_muxM, reg_data_muxDM;
     wire branchD, jumpD;
     wire used_rsD, used_rtD;
     wire imm_zero_extD, branch_neD;
     wire [3:0] alu_controlE;
-    wire validM, mem_write_enM, mem_read_enM, hold_de, hold_em, hold_fd;
+    wire validM, mem_write_enM, mem_read_enM, hold_de, hold_eei, hold_eim, hold_fd;
     wire jrD, cp0_write_enE, eretD;
     wire bubble_e, bubble_dm;
 
@@ -32,11 +32,13 @@ module MIPS (
         .instrD(instrD),
         .DM_data_oM(DM_data_oM),
         .reg_write_enE(reg_write_enE), 
+        .reg_write_enEI(reg_write_enEI), 
         .reg_write_enM(reg_write_enM), 
         .reg_write_enDM(reg_write_enDM), 
         .reg_write_enW(reg_write_enW),
         .alu_src_muxE(alu_src_muxE),
         .reg_data_muxE(reg_data_muxE),
+        .reg_data_muxEI(reg_data_muxEI),
         .reg_data_muxM(reg_data_muxM),
         .reg_data_muxDM(reg_data_muxDM),
         .reg_dst_muxE(reg_dst_muxE),
@@ -57,7 +59,8 @@ module MIPS (
         .DM_data_iM(DM_data_iM),
         .hold_fd(hold_fd), 
         .hold_de(hold_de), 
-        .hold_em(hold_em), 
+        .hold_eei(hold_eei), 
+        .hold_eim(hold_eim), 
         .validM(validM),
         .bubble_e(bubble_e),
         .bubble_dm(bubble_dm),
@@ -75,7 +78,8 @@ module MIPS (
         .rst(rst),
         .cpu_en(cpu_en),
         .hold_de(hold_de), 
-        .hold_em(hold_em), 
+        .hold_eei(hold_eei), 
+        .hold_eim(hold_eim), 
         .bubble_e(bubble_e), 
         .bubble_dm(bubble_dm), 
         .rs(instrD[25:21]), 
@@ -83,12 +87,14 @@ module MIPS (
         .funct(instrD[5:0]),
         // out
         .reg_write_enE(reg_write_enE), 
+        .reg_write_enEI(reg_write_enEI), 
         .reg_write_enM(reg_write_enM), 
         .reg_write_enDM(reg_write_enDM), 
         .reg_write_enW(reg_write_enW), 
         .alu_src_muxE(alu_src_muxE),  
         .reg_dst_muxE(reg_dst_muxE), 
         .reg_data_muxE(reg_data_muxE), 
+        .reg_data_muxEI(reg_data_muxEI), 
         .reg_data_muxM(reg_data_muxM), 
         .reg_data_muxDM(reg_data_muxDM), 
         .mem_write_enM(mem_write_enM),

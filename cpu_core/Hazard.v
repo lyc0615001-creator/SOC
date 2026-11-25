@@ -24,19 +24,20 @@ module Hazard(
         input [4:0] rsD, rtD,
         input [4:0] rsE, rtE,
         input used_rsD, used_rtD,
-        input [4:0] RF_address3E, RF_address3M, RF_address3DM,
-        input reg_write_enE, reg_write_enM, reg_write_enDM,
-        input [1:0] reg_data_muxE, reg_data_muxM, reg_data_muxDM,
+        input [4:0] RF_address3E, RF_address3EI, RF_address3M, RF_address3DM,
+        input reg_write_enE, reg_write_enEI, reg_write_enM, reg_write_enDM,
+        input [1:0] reg_data_muxE, reg_data_muxEI, reg_data_muxM, reg_data_muxDM,
         input branch_selD, jump_selD, branchD, jr_selD, jrD, eretD,
         input eret_fireD, cp0_write_fireE,
-        input validD, validE, validM, validDM,
+        input validD, validE, validEI, validM, validDM,
         output [1:0] forwardAD, forwardBD,
-        output forwardAE, forwardBE,
+        output [1:0] forwardAE, forwardBE,
         output stall, redirectD
     );
 
-    wire hazardE, hazardM;
-    wire matchA, matchB;
+    wire hazardE, hazardEI, hazardM;
+    wire m_matchA, m_matchB;
+    wire ei_matchA, ei_matchB;
 
     // F IM D E M DM W
 
@@ -48,12 +49,12 @@ module Hazard(
     // 定义 forwardAD 000-normal  001-E  010-M  011-DM  100-W 
     // ** v2.2 删除W阶段前递，使用同周期读写判断
 
-    assign forwardAD = (validE && reg_write_enE && (reg_data_muxE != 2'b01 ) && (RF_address3E != 5'b0) && (RF_address3E == rsD)) ? 2'b01 :
+    assign forwardAD = (validEI && reg_write_enEI && (reg_data_muxEI != 2'b01 ) && (RF_address3EI != 5'b0) && (RF_address3EI == rsD)) ? 2'b01 :
                        (validM && reg_write_enM && (reg_data_muxM != 2'b01 ) && (RF_address3M != 5'b0) && (RF_address3M == rsD)) ? 2'b10 :
                        (validDM && reg_write_enDM && (RF_address3DM != 5'b0) && (RF_address3DM == rsD)) ? 2'b11 :
                        2'b00;
     
-    assign forwardBD = (validE && reg_write_enE && (reg_data_muxE != 2'b01) && (RF_address3E != 5'b0) && (RF_address3E == rtD)) ? 2'b01 :
+    assign forwardBD = (validEI && reg_write_enEI && (reg_data_muxEI != 2'b01) && (RF_address3EI != 5'b0) && (RF_address3EI == rtD)) ? 2'b01 :
                        (validM && reg_write_enM && (reg_data_muxM != 2'b01) && (RF_address3M != 5'b0) && (RF_address3M == rtD))  ? 2'b10 :
                        (validDM && reg_write_enDM && (RF_address3DM != 5'b0) && (RF_address3DM == rtD)) ? 2'b11 :
                        2'b00;
@@ -80,16 +81,23 @@ module Hazard(
     // 正常1指令前递D给2，2指令前递D给3. 加入E阶段前置后，随后又会1指令前递E给3，引起错误
     // 判断条件 发现在DM前递E时，先判断M是否已和E匹配，1则代表上一轮已经发生D前递
 
-    assign matchA = validM && reg_write_enM && (RF_address3M != 5'b0) && (RF_address3M == rsE);
-    assign matchB = validM && reg_write_enM && (RF_address3M != 5'b0) && (RF_address3M == rtE);
+    assign m_matchA = validM && reg_write_enM && (RF_address3M != 5'b0) && (RF_address3M == rsE);
+    assign m_matchB = validM && reg_write_enM && (RF_address3M != 5'b0) && (RF_address3M == rtE);
 
-    assign forwardAE = (validDM && reg_write_enDM && (reg_data_muxDM == 2'b01) && (RF_address3DM != 5'b0) && (RF_address3DM == rsE) && !matchA);
-    assign forwardBE = (validDM && reg_write_enDM && (reg_data_muxDM == 2'b01) && (RF_address3DM != 5'b0) && (RF_address3DM == rtE) && !matchB);
+    assign ei_matchA = validEI && reg_write_enEI && (RF_address3EI != 5'b0) && (RF_address3EI == rsE);
+    assign ei_matchB = validEI && reg_write_enEI && (RF_address3EI != 5'b0) && (RF_address3EI == rtE);
 
-    assign hazardE = validD && validE && reg_write_enE && (reg_data_muxE == 2'b01) && (RF_address3E != 5'b0) && ((used_rsD && RF_address3E == rsD) || (used_rtD && RF_address3E == rtD));
+    assign forwardAE = (validEI && reg_write_enEI && (reg_data_muxEI != 2'b01 ) && (RF_address3EI != 5'b0) && (RF_address3EI == rsE)) ? 2'b01 : // 只针对R
+                       (validDM && reg_write_enDM && (reg_data_muxDM == 2'b01) && (RF_address3DM != 5'b0) && (RF_address3DM == rsE) && !m_matchA && !ei_matchA) ? 2'b10 : 2'b00; //DM前递必须要求不能覆盖更前级处于stall的前递
+    assign forwardBE = (validEI && reg_write_enEI && (reg_data_muxEI != 2'b01 ) && (RF_address3EI != 5'b0) && (RF_address3EI == rtE)) ? 2'b01 :
+                       (validDM && reg_write_enDM && (reg_data_muxDM == 2'b01) && (RF_address3DM != 5'b0) && (RF_address3DM == rtE) && !m_matchB && !ei_matchB) ? 2'b10 : 2'b00;
+
+    assign hazardE = validD && validE && reg_write_enE && (RF_address3E != 5'b0) && ((used_rsD && RF_address3E == rsD) || (used_rtD && RF_address3E == rtD));
+    assign hazardEI = validD && validEI && reg_write_enEI && (reg_data_muxEI == 2'b01) && (RF_address3EI != 5'b0) && ((used_rsD && RF_address3EI == rsD) || (used_rtD && RF_address3EI == rtD));
     assign hazardM = validD && validM && reg_write_enM && (reg_data_muxM == 2'b01) && (RF_address3M != 5'b0) && ((used_rsD && RF_address3M == rsD) || (used_rtD && RF_address3M == rtD));
 
-    assign stall = hazardE || ((branchD || jrD) && hazardM) || (validD && eretD && cp0_write_fireE);
+    // v4.10 当DE关联时，E为lw指令 一律暂停；D为跳转指令 也暂停；其他情况放行
+    assign stall = ((branchD || jrD || (reg_data_muxE == 2'b01)) && hazardE) || hazardEI || ((branchD || jrD) && hazardM) || (validD && eretD && cp0_write_fireE);
 
     // beq jump 控制冒险
     // 原因：当前执行beq或jump，需要生成一个redirectD信号，无效之后的两条指令
