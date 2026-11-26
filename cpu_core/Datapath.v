@@ -4,10 +4,10 @@ module Datapath (
     input cpu_en, irq,
     input [31:0] instrD,
     input [31:0] DM_data_oM,
-    input reg_write_enE, reg_write_enM, reg_write_enDM,
+    input reg_write_enE, reg_write_enM,
     input reg_write_enW, alu_src_muxE,
     input [1:0] reg_dst_muxE,
-    input [1:0] reg_data_muxE, reg_data_muxM, reg_data_muxDM,
+    input [1:0] reg_data_muxE, reg_data_muxM, reg_data_muxW,
     input branchD, jumpD,
     input used_rsD, used_rtD,
     input imm_zero_extD, branch_neD,
@@ -16,7 +16,7 @@ module Datapath (
     input bus_wait,
     output [31:0] pc_oF, early_resultM, DM_data_iM,
     output hold_de, hold_em, hold_fd, validM,
-    output bubble_e, bubble_dm,
+    output bubble_e, bubble_w,
     output validW, stall
 );
 
@@ -43,24 +43,22 @@ module Datapath (
     wire [4:0] RF_address3M;
     wire [31:0] early_resultM;
 
-    // DM阶段变量
-    wire [4:0] RF_address3DM;
-    wire [31:0] RF_data_iDM, early_resultDM, DM_data_oDM;
-    wire RF_data_srcDM;
-
     // W阶段变量
+    wire RF_data_srcW;
     wire [4:0] RF_address3W;
+    wire [31:0] early_resultW;
+    wire [31:0] DM_data_oW;
     wire [31:0] RF_data_iW;
 
     // HAZARD 变量
     wire [1:0] forwardAD, forwardBD;
     wire [31:0] RF_data_o1_mux4D, RF_data_o2_mux4D;
     wire redirectD;
-    wire [31:0] ForwardValueE, ForwardValueM, ForwardValueDM;
+    wire [31:0] ForwardValueE, ForwardValueM, ForwardValueW;
 
     // Valid_pipeline 变量
-    wire validD, validE, validM, validDM;
-    wire [4:0] valid_signs;
+    wire validD, validE, validM;
+    wire [3:0] valid_signs;
     wire rf_write_enW;
 
     // 前递E变量
@@ -98,7 +96,7 @@ module Datapath (
     assign eret_selD = eret_fireD;
 
     // ** v 4.82 关键bug修复
-    // 解决lw DM-E阶段数据前递（L1-L2-A三条指令）时，L2处于M阶段产生总线访问暂停，释放后不满足前递条件的问题
+    // 解决lw W-E阶段数据前递（L1-L2-A三条指令）时，L2处于M阶段产生总线访问暂停，释放后不满足前递条件的问题
     // 解决措施：将前递修改为：修改数据源,用特殊流水代替普通流水
     repair_flopenrc u_repair_flopenrc(
         .clk(clk),
@@ -112,7 +110,7 @@ module Datapath (
         .forwardBE(forwardBE),
         .RF_data_o1_mux4D(RF_data_o1_mux4D),
         .RF_data_o2_mux4D(RF_data_o2_mux4D),
-        .RF_data_iDM(RF_data_iDM),
+        .RF_data_iW(ForwardValueW),
 
         .RF_data_o1_mux4E(RF_data_o1_mux4E),
         .RF_data_o2_mux4E(RF_data_o2_mux4E)
@@ -190,17 +188,12 @@ module Datapath (
     flopenrc #(32) u_flopenrc_DM_data_iM(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_em), .clear(1'b0), .din(DM_data_iE), .dout(DM_data_iM));
     flopenrc #(5) u_flopenrc_RF_address3M(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(~hold_em), .clear(1'b0), .din(RF_address3E), .dout(RF_address3M));
 
-    // M -> DM 数据存储器延迟同步
+    // M -> W 数据存储器延迟同步
     // 延迟变量  RF_address3M  early_resultM DM_data_oM
-    flopenrc #(32) u_flopenrc_early_resultDM(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(bubble_dm), .din(early_resultM), .dout(early_resultDM));
-    flopenrc #(5) u_flopenrc_RF_address3DM(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(bubble_dm), .din(RF_address3M), .dout(RF_address3DM));
+    flopenrc #(32) u_flopenrc_early_resultW(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(bubble_w), .din(early_resultM), .dout(early_resultW));
+    flopenrc #(5) u_flopenrc_RF_address3W(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(bubble_w), .din(RF_address3M), .dout(RF_address3W));
 
-    flopenrc #(32) u_flopenrc_DM_data_oDM(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(bubble_dm), .din(DM_data_oM), .dout(DM_data_oDM));
-
-    // DM -> W 流水线触发器
-    // 延迟变量 RF_address3DM RF_data_iDM
-    flopenrc #(5) u_flopenrc_RF_address3W(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(RF_address3DM), .dout(RF_address3W));
-    flopenrc #(32) u_flopenrc_RF_data_iW(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(1'b0), .din(RF_data_iDM), .dout(RF_data_iW));
+    flopenrc #(32) u_flopenrc_DM_data_oW(.clk(clk), .rst(rst), .cpu_en(cpu_en), .en(1'b1), .clear(bubble_w), .din(DM_data_oM), .dout(DM_data_oW));
 
     //  pc F-> D
     wire [31:0] pc_oD;
@@ -238,13 +231,13 @@ module Datapath (
         .data_o(alu_src_i2E)
     );
 
-    // [1:0] RF_data_iDM
-    assign RF_data_srcDM = (reg_data_muxDM == 2'b01);
+    // [1:0] RF_data_iW
+    assign RF_data_srcW = (reg_data_muxW == 2'b01);
     mux2 #(32) u_mux2_RF_data_i (
-        .data_i1(DM_data_oDM), 
-        .data_i2(early_resultDM), 
-        .sel(RF_data_srcDM), 
-        .data_o(RF_data_iDM)
+        .data_i1(DM_data_oW), 
+        .data_i2(early_resultW), 
+        .sel(RF_data_srcW), 
+        .data_o(RF_data_iW)
     );
 
     // [1:0] reg_dst_muxE
@@ -315,20 +308,20 @@ module Datapath (
         .used_rtD(used_rtD),
         .RF_address3E(RF_address3E), 
         .RF_address3M(RF_address3M), 
-        .RF_address3DM(RF_address3DM), 
+        .RF_address3W(RF_address3W), 
         .reg_write_enE(reg_write_enE), 
         .reg_write_enM(reg_write_enM), 
-        .reg_write_enDM(reg_write_enDM), 
+        .reg_write_enW(reg_write_enW), 
         .reg_data_muxE(reg_data_muxE),
         .reg_data_muxM(reg_data_muxM),
-        .reg_data_muxDM(reg_data_muxDM),
+        .reg_data_muxW(reg_data_muxW),
         .branch_selD(branch_selD),
         .jump_selD(jump_selD),
         .jr_selD(jr_selD),
         .validD(validD),
         .validE(validE),
         .validM(validM),
-        .validDM(validDM),
+        .validW(validW),
         .branchD(branchD),
         .jrD(jrD),
         .eretD(eretD),
@@ -347,13 +340,13 @@ module Datapath (
 
     assign ForwardValueE = 32'd0; // 已取消ED前递
     assign ForwardValueM = early_resultM;
-    assign ForwardValueDM = RF_data_iDM;
+    assign ForwardValueW = RF_data_iW;
 
     mux4 #(32) u_mux4_RF_data1(
         .data_i1(RF_data_o1D),
         .data_i2(ForwardValueE),
         .data_i3(ForwardValueM),
-        .data_i4(ForwardValueDM),
+        .data_i4(32'd0),
         .sel(forwardAD),
         .data_o(RF_data_o1_mux4D)
     );
@@ -362,13 +355,13 @@ module Datapath (
         .data_i1(RF_data_o2D),
         .data_i2(ForwardValueE),
         .data_i3(ForwardValueM),
-        .data_i4(ForwardValueDM),
+        .data_i4(32'd0),
         .sel(forwardBD),
         .data_o(RF_data_o2_mux4D)
     );
 
     // valid_pipeline 
-    assign {validD, validE, validM, validDM, validW} = valid_signs;
+    assign {validD, validE, validM, validW} = valid_signs;
 
     Valid_pipeline u_Valid_pipeline(
         .clk(clk),
@@ -385,14 +378,14 @@ module Datapath (
         .hold_de(hold_de),
         .hold_em(hold_em),
         .bubble_e(bubble_e),
-        .bubble_dm(bubble_dm)
+        .bubble_w(bubble_w)
     );
     
     // lw-use + (M-E) 前递E
     mux4 #(32) u_mux2_alu_src1 (
         .data_i1(RF_data_o1_mux4E), 
         .data_i2(ForwardValueM), 
-        .data_i3(RF_data_iDM), 
+        .data_i3(ForwardValueW), 
         .data_i4(32'd0), 
         .sel(forwardAE), 
         .data_o(alu_src_i1E)
@@ -401,7 +394,7 @@ module Datapath (
     mux4 #(32) u_mux2_alu_src0 (
         .data_i1(RF_data_o2_mux4E), 
         .data_i2(ForwardValueM), 
-        .data_i3(RF_data_iDM), 
+        .data_i3(ForwardValueW), 
         .data_i4(32'd0), 
         .sel(forwardBE), 
         .data_o(alu_src_i0E)

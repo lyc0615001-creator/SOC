@@ -10,7 +10,7 @@ module repair_flopenrc (
     input  wire [1:0]   forwardBE,
     input  wire [31:0]  RF_data_o1_mux4D,
     input  wire [31:0]  RF_data_o2_mux4D,
-    input  wire [31:0]  RF_data_iDM,
+    input  wire [31:0]  RF_data_iW,
 
     output reg  [31:0]  RF_data_o1_mux4E,
     output reg  [31:0]  RF_data_o2_mux4E
@@ -29,10 +29,10 @@ module repair_flopenrc (
                 RF_data_o2_mux4E <= RF_data_o2_mux4D;
             end else if (bus_wait) begin
                 if (forwardAE == 2'b10) begin
-                    RF_data_o1_mux4E <= RF_data_iDM;
+                    RF_data_o1_mux4E <= RF_data_iW;
                 end
                 if (forwardBE == 2'b10) begin
-                    RF_data_o2_mux4E <= RF_data_iDM;
+                    RF_data_o2_mux4E <= RF_data_iW;
                 end
             end
         end   

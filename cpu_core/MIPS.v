@@ -12,17 +12,17 @@ module MIPS (
     output [31:0] DM_data_iM,
     output validW, stall
 );
-    wire reg_write_enE, reg_write_enM, reg_write_enDM;
+    wire reg_write_enE, reg_write_enM;
     wire reg_write_enW, alu_src_muxE;
     wire [1:0] reg_dst_muxE;
-    wire [1:0] reg_data_muxE, reg_data_muxM, reg_data_muxDM;
+    wire [1:0] reg_data_muxE, reg_data_muxM, reg_data_muxW;
     wire branchD, jumpD;
     wire used_rsD, used_rtD;
     wire imm_zero_extD, branch_neD;
     wire [3:0] alu_controlE;
     wire validM, mem_write_enM, mem_read_enM, hold_de, hold_em, hold_fd;
     wire jrD, cp0_write_enE, eretD;
-    wire bubble_e, bubble_dm;
+    wire bubble_e, bubble_w;
 
     Datapath u_Datapath(
         .clk(clk), 
@@ -33,12 +33,11 @@ module MIPS (
         .DM_data_oM(DM_data_oM),
         .reg_write_enE(reg_write_enE), 
         .reg_write_enM(reg_write_enM), 
-        .reg_write_enDM(reg_write_enDM), 
         .reg_write_enW(reg_write_enW),
         .alu_src_muxE(alu_src_muxE),
         .reg_data_muxE(reg_data_muxE),
         .reg_data_muxM(reg_data_muxM),
-        .reg_data_muxDM(reg_data_muxDM),
+        .reg_data_muxW(reg_data_muxW),
         .reg_dst_muxE(reg_dst_muxE),
         .branchD(branchD),
         .jumpD(jumpD),
@@ -60,7 +59,7 @@ module MIPS (
         .hold_em(hold_em), 
         .validM(validM),
         .bubble_e(bubble_e),
-        .bubble_dm(bubble_dm),
+        .bubble_w(bubble_w),
         .validW(validW),
         .stall(stall)
     );
@@ -77,20 +76,19 @@ module MIPS (
         .hold_de(hold_de), 
         .hold_em(hold_em), 
         .bubble_e(bubble_e), 
-        .bubble_dm(bubble_dm), 
+        .bubble_w(bubble_w), 
         .rs(instrD[25:21]), 
         .op_code(instrD[31:26]),
         .funct(instrD[5:0]),
         // out
         .reg_write_enE(reg_write_enE), 
         .reg_write_enM(reg_write_enM), 
-        .reg_write_enDM(reg_write_enDM), 
         .reg_write_enW(reg_write_enW), 
         .alu_src_muxE(alu_src_muxE),  
         .reg_dst_muxE(reg_dst_muxE), 
         .reg_data_muxE(reg_data_muxE), 
         .reg_data_muxM(reg_data_muxM), 
-        .reg_data_muxDM(reg_data_muxDM), 
+        .reg_data_muxW(reg_data_muxW), 
         .mem_write_enM(mem_write_enM),
         .mem_read_enM(mem_read_enM),
         .branchD(branchD), 
