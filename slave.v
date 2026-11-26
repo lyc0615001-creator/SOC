@@ -72,6 +72,18 @@ module slave(
         output      [1:0]  ddr3_dm,
         output      [0:0]  ddr3_odt
     );
+        //================ dcache =================
+        wire              cpu_dcache_request;
+        wire              cpu_dcache_re;
+        wire              cpu_dcache_we;
+        wire      [3:0]   cpu_dcache_wstrb;
+        wire      [31:0]  cpu_dcache_addr;
+        wire      [31:0]  cpu_dcache_wdata;
+
+        wire              cpu_dcache_ready;
+        wire      [31:0]  cpu_dcache_rdata;
+        wire      [1:0]   cpu_dcache_resp;
+
         //================ Arbiter =================
         wire              arbiter_request;
         wire              arbiter_re;
@@ -261,22 +273,55 @@ module slave(
         );
 
         //==================================================
+        // dcache instance
+        //==================================================
+
+        dcache u_dcache(
+            .clk(clk_cpu_50),
+            .rst_n(cpu_rst_n),
+
+            // CPU side
+            .s_request(cpu_request),
+            .s_read(cpu_read),
+            .s_write(cpu_write),
+            .s_wstrb(cpu_wstrb),
+            .s_addr(cpu_addr),
+            .s_wdata(cpu_wdata),
+
+            .s_ready(cpu_ready),
+            .s_rdata(cpu_rdata),
+            .s_resp(cpu_resp),
+
+            // bus / arbiter side
+            .m_request(cpu_dcache_request),
+            .m_read(cpu_dcache_re),
+            .m_write(cpu_dcache_we),
+            .m_wstrb(cpu_dcache_wstrb),
+            .m_addr(cpu_dcache_addr),
+            .m_wdata(cpu_dcache_wdata),
+
+            .m_ready(cpu_dcache_ready),
+            .m_rdata(cpu_dcache_rdata),
+            .m_resp(cpu_dcache_resp)
+        );
+
+        //==================================================
         // Arbiter
         //==================================================
         arbiter u_arbiter(
             .clk(clk_cpu_50),
             .rst_n(cpu_rst_n),
 
-            .cpu_request(cpu_request),
-            .cpu_read(cpu_read),
-            .cpu_write(cpu_write),
-            .cpu_wstrb(cpu_wstrb),
-            .cpu_addr(cpu_addr),
-            .cpu_wdata(cpu_wdata),
+            .cpu_request(cpu_dcache_request),
+            .cpu_read(cpu_dcache_re),
+            .cpu_write(cpu_dcache_we),
+            .cpu_wstrb(cpu_dcache_wstrb),
+            .cpu_addr(cpu_dcache_addr),
+            .cpu_wdata(cpu_dcache_wdata),
 
-            .cpu_ready(cpu_ready),
-            .cpu_rdata(cpu_rdata),
-            .cpu_resp(cpu_resp),
+            .cpu_ready(cpu_dcache_ready),
+            .cpu_rdata(cpu_dcache_rdata),
+            .cpu_resp(cpu_dcache_resp),
 
             .dma_request(dma_m_request),
             .dma_re(dma_m_re),

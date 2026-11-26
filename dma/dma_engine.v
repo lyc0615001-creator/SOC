@@ -164,7 +164,7 @@ module dma_engine(
     wire legal_length;
     assign legal_length = (length != 0) && (length[1:0] == 2'b00);
 
-    wire addr_ok;
+    wire addr_ok; // 0x8000_0000 ~ 0x83FF_FFFF
 
     assign addr_ok = (src_addr[1:0] == 2'b00) && (dst_addr[1:0] == 2'b00);
 
@@ -180,14 +180,14 @@ module dma_engine(
 
     // ram 0x0001_0000 ~ 0x0001_FFFF
     // npu 0x4000_0000 ~ 0x4000_0FFF  A(wr) 0x100~0x1FC B(wr) 0x200~0x2FC  C(read) 0x300~0x3FC
-    // ddr 0x8000_0000 ~ 0x87FF_FFFF
+    // ddr 0x8000_0000 ~ 0x83FF_FFFF
     assign src_range_ok = ((src_addr[31:16] == 16'h0001) && (src_last[31:16] == 16'h0001))
                     || ((src_addr[31:8] == 24'h400003) && (src_last[31:8] == 24'h400003))
-                    || ((src_addr[31:27] == 5'b10000) && (src_last[31:27] == 5'b10000));
+                    || ((src_addr[31:26] == 6'b100000) && (src_last[31:26] == 6'b100000));
     
     assign dst_range_ok = ((dst_addr[31:16] == 16'h0001) && (dst_last[31:16] == 16'h0001))
                     || ((dst_addr[31:8] == 24'h400001 || dst_addr[31:8] == 24'h400002) && (dst_last[31:8] == 24'h400001 || dst_last[31:8] == 24'h400002))
-                    || ((dst_addr[31:27] == 5'b10000) && (dst_last[31:27] == 5'b10000));
+                    || ((dst_addr[31:26] == 6'b100000) && (dst_last[31:26] == 6'b100000));
 
     // 地址合法
     wire legal_addr;
