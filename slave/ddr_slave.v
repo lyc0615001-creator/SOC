@@ -20,7 +20,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module ddr_subsystem(
+module ddr_slave(
         input         clk_cpu_50,
         input         clk_mig_160,
         input         clk_ref_200,
@@ -57,17 +57,6 @@ module ddr_subsystem(
         output [0:0]  ddr3_odt
     );
 
-    wire [31:0] ddr_offset;
-    wire [27:0] mig_addr;
-
-    assign ddr_offset = ddr_addr;
-
-    assign mig_addr = (ddr_offset & 32'hFFFF_FFF0) >> 1;
-
-    wire [127:0] mig_wdata;
-    wire [15:0]  mig_wmask;
-    wire [127:0] mig_rdata;
-
     // mig_transaction_engine var
     wire [27:0] app_addr;
     wire [2:0]  app_cmd;
@@ -94,6 +83,30 @@ module ddr_subsystem(
 
     wire [11:0]  device_temp;
 
+    // ddr_width_adapter var
+    wire [127:0] buf_wdata;
+    wire [15:0]  buf_wmask;
+    wire [127:0] buf_rdata;
+    wire         buf_ready;
+
+    assign ddr_ready = buf_ready;
+
+    // ddr_read_buffer var
+    wire buf_request = ddr_request;
+    wire buf_re      = ddr_re;
+    wire buf_we      = ddr_we;
+    wire [31:0] buf_addr    = ddr_addr;
+
+    wire         cdc_request;
+    wire         cdc_re;
+    wire         cdc_we;
+    wire [31:0]  m_addr;
+    wire [15:0]  cdc_wmask;
+    wire [127:0] cdc_wdata;
+
+    wire         cdc_ready;
+    wire [127:0] cdc_rdata;
+
     // ddr_cdc_bridge var
     wire         req_ready;
     wire         rsp_done;
@@ -105,13 +118,20 @@ module ddr_subsystem(
     wire [127:0] req_wdata;
     wire [15:0]  req_wmask;
 
-    wire ddr_req_valid;
+    wire cdc_req_valid;
 
-    wire ddr_req_write;
+    wire cdc_req_write;
 
-    assign ddr_req_valid = ddr_request && (ddr_re || ddr_we);
+    assign cdc_req_valid = cdc_request && (cdc_re || cdc_we);
 
-    assign ddr_req_write = ddr_we;
+    assign cdc_req_write = cdc_we;
+
+    wire [31:0] ddr_offset;
+    wire [27:0] cdc_addr;
+
+    assign ddr_offset = m_addr;
+
+    assign cdc_addr = (ddr_offset & 32'hFFFF_FFF0) >> 1;
 
     // ddr_system_rst
     wire ui_system_rst;
@@ -139,11 +159,41 @@ module ddr_subsystem(
         .wdata(ddr_wdata),
         .wstrb(ddr_wstrb),
 
-        .mig_wdata(mig_wdata),
-        .mig_wmask(mig_wmask),
+        .buf_wdata(buf_wdata),
+        .buf_wmask(buf_wmask),
 
-        .mig_rdata(mig_rdata),
+        .buf_rdata(buf_rdata),
         .rdata(ddr_rdata)
+    );
+
+    // ============================================
+    // ddr_read_buffer instance
+    // ============================================
+    ddr_read_buffer u_ddr_read_buffer(
+        .clk(clk_cpu_50),
+        .rst_n(cpu_rst_n),
+
+        // upstream: hub / DDR slave side
+        .s_request(buf_request),
+        .s_re(buf_re),
+        .s_we(buf_we),
+        .s_wmask(buf_wmask),
+        .s_addr(buf_addr),
+        .s_wdata(buf_wdata),
+
+        .s_ready(buf_ready),
+        .s_rdata(buf_rdata),
+
+        // downstream: original CDC side
+        .m_request(cdc_request),
+        .m_re(cdc_re),
+        .m_we(cdc_we),
+        .m_wmask(cdc_wmask),
+        .m_addr(m_addr),
+        .m_wdata(cdc_wdata),
+
+        .m_ready(cdc_ready),
+        .m_rdata(cdc_rdata)
     );
 
     // ============================================
@@ -155,15 +205,15 @@ module ddr_subsystem(
         .cpu_clk(clk_cpu_50),
         .cpu_rstn(cpu_rst_n),
 
-        .cpu_req(ddr_req_valid),
-        .cpu_write(ddr_req_write),
+        .cpu_req(cdc_req_valid),
+        .cpu_write(cdc_req_write),
 
-        .cpu_addr(mig_addr),
-        .cpu_wdata(mig_wdata),
-        .cpu_wmask(mig_wmask),
+        .cpu_addr(cdc_addr),
+        .cpu_wdata(cdc_wdata),
+        .cpu_wmask(cdc_wmask),
 
-        .bus_ready(ddr_ready),
-        .bus_rdata(mig_rdata),
+        .bus_ready(cdc_ready),
+        .bus_rdata(cdc_rdata),
 
         // MIG ui_clk domain
         .ui_clk(ui_clk),

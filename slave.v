@@ -614,9 +614,9 @@ module slave(
         );
 
         //==================================================
-        // ddr_subsystem instance   
+        // ddr_slave instance   
         //==================================================
-        ddr_subsystem u_ddr_subsystem(
+        ddr_slave u_ddr_slave(
             .clk_cpu_50(clk_cpu_50),
             .clk_mig_160(clk_mig_160),
             .clk_ref_200(clk_ref_200),
