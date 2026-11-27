@@ -24,7 +24,14 @@ module dcache (
 
     input  wire        m_ready,
     input  wire [31:0] m_rdata,
-    input  wire [1:0]  m_resp
+    input  wire [1:0]  m_resp,
+
+    output wire [31:0] stat_cache_read,
+    output wire [31:0] stat_hit,
+    output wire [31:0] stat_miss,
+    output wire [31:0] stat_fill_done,
+    output wire [31:0] stat_fill_word,
+    output wire [31:0] stat_fill_fail
 );
     // addr[31:10] = tag
     // addr[9:4]   = index
@@ -80,12 +87,14 @@ module dcache (
 
     // 0x8400_0000 ~ 0x87FF_FFFF
     wire cacheable;
+    wire bypass_access;
 
     wire cache_region  = (s_addr[31:26] == 6'b100001);
     wire word_aligned  = (s_addr[1:0] == 2'b00);
     wire legal_op      = s_read ^ s_write;
 
     assign cacheable = cache_region && word_aligned && legal_op;
+    assign bypass_access = (state == IDLE) && s_request && !cacheable; // ****
 
     reg [1:0] fill_word;
     wire [31:0] fill_line_base;
@@ -106,16 +115,29 @@ module dcache (
     wire reach_top = (fill_word == 2'b11);
 
     // 定义外部状态
-    assign m_request = (state == FILL_WAIT) || (state == BUS_WAIT);
-    assign m_read    = (state == FILL_WAIT) ? 1'b1 : (state == BUS_WAIT) ? req_read_reg : 1'b0;
-    assign m_write   = (state == BUS_WAIT) ? req_write_reg : 1'b0;
-    assign m_addr    = (state == FILL_WAIT) ? (fill_line_base + {28'd0, fill_word, 2'b00}) : (state == BUS_WAIT) ? req_addr_reg : 32'd0;
-    assign m_wstrb   = req_wstrb_reg;
-    assign m_wdata   = req_wdata_reg;
+    assign m_request = (state == FILL_WAIT) || (state == BUS_WAIT) || bypass_access;
+    assign m_read    = (state == FILL_WAIT) ? 1'b1 : 
+                       (state == BUS_WAIT) ? req_read_reg : 
+                       bypass_access ? s_read : 1'b0;
+    assign m_write   = (state == BUS_WAIT) ? req_write_reg :
+                       bypass_access ? s_write : 1'b0;
+    assign m_addr    = (state == FILL_WAIT) ? (fill_line_base + {28'd0, fill_word, 2'b00}) : 
+                       (state == BUS_WAIT) ? req_addr_reg : 
+                       bypass_access ? s_addr : 32'd0;
+    assign m_wstrb   = bypass_access ? s_wstrb : req_wstrb_reg;
+    assign m_wdata   = bypass_access ? s_wdata : req_wdata_reg;
 
-    assign s_rdata   = rsp_rdata_reg;
-    assign s_resp    = rsp_resp_reg;
-    assign s_ready   = (state == RESP);
+    assign s_rdata   = bypass_access ? m_rdata : rsp_rdata_reg;
+    assign s_resp    = bypass_access ? m_resp : rsp_resp_reg;
+    assign s_ready   = bypass_access ? m_ready : (state == RESP);
+
+    // 统计计数模块
+    wire cache_read_event = (state == IDLE) && s_request && s_read && cacheable;
+    wire hit_event = (state == LOOKUP) && read_hit;
+    wire miss_event = (state == LOOKUP) && !read_hit;
+    wire fill_word_event = (state == FILL_WAIT) && m_ready;
+    wire fill_done_event = (state == FILL_WAIT) && m_ready && (m_resp == RESP_OKAY) && reach_top;
+    wire fill_fail_event = (state == FILL_WAIT) && m_ready && (m_resp != RESP_OKAY);
 
     // 综合RAM
     reg [31:0] data_rd_reg;
@@ -162,18 +184,24 @@ module dcache (
                         req_wstrb_reg <= s_wstrb;
                         req_wdata_reg <= s_wdata;
 
-                        if (write && write_invalidate) begin
-                            valid_mem[pri_req_index] <= 1'b0;
-
-                            state <= BUS_WAIT;
-                        end
-
-                        else if (read && cacheable) begin
-                            state <= LOOKUP;
+                        if (!cacheable) begin
+                            state <= IDLE;
                         end
 
                         else begin
-                            state <= BUS_WAIT;
+                            if (write && write_invalidate) begin
+                                valid_mem[pri_req_index] <= 1'b0;
+
+                                state <= BUS_WAIT;
+                            end
+
+                            else if (read && cacheable) begin
+                                state <= LOOKUP;
+                            end
+
+                            else begin
+                                state <= BUS_WAIT;
+                            end
                         end
                     end
                 end
@@ -234,5 +262,38 @@ module dcache (
             endcase
         end
     end
+
+    wire [31:0] cache_read_count;
+    wire [31:0] hit_count;
+    wire [31:0] miss_count;
+    wire [31:0] fill_word_count;
+    wire [31:0] fill_done_count;
+    wire [31:0] fill_fail_count;
+
+    dcache_stats u_dcache_stats(
+        .clk(clk),
+        .rst_n(rst_n),
+
+        .cache_read_event(cache_read_event),
+        .hit_event(hit_event),
+        .miss_event(miss_event),
+        .fill_word_event(fill_word_event),
+        .fill_done_event(fill_done_event),
+        .fill_fail_event(fill_fail_event),
+
+        .cache_read_count(cache_read_count),
+        .hit_count(hit_count),
+        .miss_count(miss_count),
+        .fill_word_count(fill_word_count),
+        .fill_done_count(fill_done_count),
+        .fill_fail_count(fill_fail_count)
+    );
+
+    assign stat_cache_read = cache_read_count;
+    assign stat_hit        = hit_count;
+    assign stat_miss       = miss_count;
+    assign stat_fill_done  = fill_done_count;
+    assign stat_fill_word  = fill_word_count;
+    assign stat_fill_fail  = fill_fail_count;
     
 endmodule

@@ -260,6 +260,14 @@ module slave(
         wire              fault_ready;
         wire      [31:0]  fault_rdata;
 
+        //================ D-cache =================
+        wire      [31:0]  dcache_stat_cache_read;
+        wire      [31:0]  dcache_stat_hit;
+        wire      [31:0]  dcache_stat_miss;
+        wire      [31:0]  dcache_stat_fill_done;
+        wire      [31:0]  dcache_stat_fill_word;
+        wire      [31:0]  dcache_stat_fill_fail;
+
 
 
         //==================================================
@@ -302,7 +310,14 @@ module slave(
 
             .m_ready(cpu_dcache_ready),
             .m_rdata(cpu_dcache_rdata),
-            .m_resp(cpu_dcache_resp)
+            .m_resp(cpu_dcache_resp),
+
+            .stat_cache_read (dcache_stat_cache_read),
+            .stat_hit        (dcache_stat_hit),
+            .stat_miss       (dcache_stat_miss),
+            .stat_fill_done  (dcache_stat_fill_done),
+            .stat_fill_word  (dcache_stat_fill_word),
+            .stat_fill_fail  (dcache_stat_fill_fail)
         );
 
         //==================================================
@@ -553,7 +568,15 @@ module slave(
             .fault_wdata(fault_wdata),
 
             .fault_ready(fault_ready),
-            .fault_rdata(fault_rdata) 
+            .fault_rdata(fault_rdata),
+
+            //================ DCache =================
+            .dcache_stat_cache_read (dcache_stat_cache_read),
+            .dcache_stat_hit        (dcache_stat_hit),
+            .dcache_stat_miss       (dcache_stat_miss),
+            .dcache_stat_fill_done  (dcache_stat_fill_done),
+            .dcache_stat_fill_word  (dcache_stat_fill_word),
+            .dcache_stat_fill_fail  (dcache_stat_fill_fail)
         );
 
 

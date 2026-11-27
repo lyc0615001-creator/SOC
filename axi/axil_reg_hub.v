@@ -141,7 +141,15 @@ module axil_reg_hub (
     output     [31:0]  fault_wdata,
 
     input              fault_ready,
-    input      [31:0]  fault_rdata
+    input      [31:0]  fault_rdata,
+
+    //================ D-cache =================
+    input      [31:0]  dcache_stat_cache_read,
+    input      [31:0]  dcache_stat_hit,
+    input      [31:0]  dcache_stat_miss,
+    input      [31:0]  dcache_stat_fill_done,
+    input      [31:0]  dcache_stat_fill_word,
+    input      [31:0]  dcache_stat_fill_fail
 );
 
     localparam IDLE          = 3'd0;
@@ -204,6 +212,17 @@ module axil_reg_hub (
     // 0x1000_A000 ~ 0x1000_A0FF
     wire sel_fault;
 
+    // 0x1000_B000 ~ 0x1000_B0FF
+    wire sel_dcache_stat;
+
+    localparam  CONFIG = 8'h00;
+    localparam  CACHE_READ_COUNT = 8'h04;
+    localparam  HIT_COUNT = 8'h08;
+    localparam  MISS_COUNT = 8'hC;
+    localparam  FILL_DONE_COUNT = 8'h10;
+    localparam  FILL_WORD_COUNT = 8'h14;
+    localparam  FILL_FAIL_COUNT = 8'h18;
+
     // 0x1000_2000 ~ 0x1000_20FF
     wire sel_timer;
 
@@ -235,6 +254,9 @@ module axil_reg_hub (
     // fault
     assign sel_fault = (active_addr[31:8] == 24'h1000A0);
 
+    // Dcache-stat
+    assign sel_dcache_stat  = (active_addr[31:8] == 24'h1000B0);
+
     // timer
     assign sel_timer = (active_addr[31:8] == 24'h100020);
 
@@ -261,6 +283,7 @@ module axil_reg_hub (
                     || sel_gpio
                     || sel_uart
                     || sel_fault
+                    || sel_dcache_stat
                     || sel_timer
                     || sel_irq
                     || sel_dma
@@ -537,6 +560,10 @@ module axil_reg_hub (
                                     state <= RESP_WRITE;
                                 end
                             end
+                            sel_dcache_stat: begin
+                                s_axi_bresp <= RESP_SLVERR;   // OKAY
+                                state <= RESP_WRITE;
+                            end
                             sel_timer: begin
                                 if (timer_ready) begin
                                     s_axi_bresp <= RESP_OKAY;   // OKAY
@@ -626,6 +653,23 @@ module axil_reg_hub (
                                     s_axi_rdata <= fault_rdata;
                                     state <= RESP_READ;
                                 end
+                            end
+                            sel_dcache_stat: begin
+                                s_axi_rresp <= RESP_OKAY;   // OKAY
+                                case (active_addr[7:0])
+                                    CONFIG :           s_axi_rdata <= 32'h0000_4041;
+                                    CACHE_READ_COUNT : s_axi_rdata <= dcache_stat_cache_read;
+                                    HIT_COUNT :        s_axi_rdata <= dcache_stat_hit;
+                                    MISS_COUNT :       s_axi_rdata <= dcache_stat_miss;
+                                    FILL_DONE_COUNT :  s_axi_rdata <= dcache_stat_fill_done;
+                                    FILL_WORD_COUNT :  s_axi_rdata <= dcache_stat_fill_word;
+                                    FILL_FAIL_COUNT :  s_axi_rdata <= dcache_stat_fill_fail;
+                                    default: begin
+                                        s_axi_rdata <= 32'd0;
+                                        s_axi_rresp <= RESP_DECERR;
+                                    end 
+                                endcase
+                                state <= RESP_READ;
                             end
                             sel_timer: begin
                                 if (timer_ready) begin
