@@ -95,6 +95,8 @@ module npu_controller(
             cycle_cnt <= 3'd7;
             drain_cnt <= 3'd0;
             store_cnt <= 3'd0;
+            
+            store_reg <= 1'b1;
         end else begin
             case (state)
                 IDLE: begin

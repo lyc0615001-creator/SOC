@@ -48,7 +48,7 @@ module npu_core_4x4 (
     // npu_controller
     //==================================================
 
-    wire [3:0]  cycle_cnt;
+    wire [2:0]  cycle_cnt;
 
     // 结果矩阵
     wire signed [31:0]      c00;
