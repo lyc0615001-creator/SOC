@@ -26,6 +26,7 @@ module npu_controller(
         // output wire                   clear,
 
         input  wire                   start,
+        input  wire                   store,
         output wire                   busy,
         output wire                   done,
 
@@ -73,6 +74,7 @@ module npu_controller(
     reg [3:0] store_cnt;
 
     // 中间变量
+    reg store_reg;
 
     // 定义状态
     assign busy  = (state != IDLE) && (state != DONE);
@@ -97,6 +99,8 @@ module npu_controller(
             case (state)
                 IDLE: begin
                     if (begin_affairs) begin
+
+                        store_reg <= store;
                         state <= FEED;
                     end
                 end
@@ -115,7 +119,10 @@ module npu_controller(
                 DRAIN: begin
                     if (drain_cnt == DRAIN_CYCLE) begin
                         drain_cnt <= 3'd0;
-                        state <= STORE;
+                        if (store_reg) begin
+                            state <= STORE;
+                        end
+                        else state <= DONE;
                     end else begin
                         drain_cnt <= drain_cnt + 3'd1;
                     end

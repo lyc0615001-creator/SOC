@@ -21,30 +21,31 @@
 
 
 module tiling_controller(
-    input  wire clk,
-    input  wire rst_n,
+    input    wire     clk,
+    input    wire     rst_n,
 
-    input  wire start,
-    output wire busy,
-    output wire done,
+    input    wire     start,
+    output   wire     busy,
+    output   wire     done,
 
     // Tile Loader
-    output reg tile_load_start,
-    input  wire tile_load_done,
+    output   reg      tile_load_start,
+    input    wire     tile_load_done,
 
     // 4x4 compute engine
-    output wire compute_start,
-    output wire clear_acc,
-    input  wire compute_done,
+    output   wire     compute_start,
+    output   wire     clear_acc,
+    input    wire     compute_done,
 
     // C tile store
-    output reg store_start,
-    input  wire store_done,
+    output   reg      store_start,
+    output   wire     store_result,
+    input    wire     store_done,
 
     // 当前tile坐标
-    output reg  tile_m,
-    output reg  tile_n,
-    output reg  tile_k
+    output   reg      tile_m,
+    output   reg      tile_n,
+    output   reg      tile_k
 );
 
     localparam IDLE = 3'd0;
@@ -62,13 +63,14 @@ module tiling_controller(
 
     // 中间变量
 
-
     // 定义状态
     assign busy = (state != IDLE) && (state != DONE);
     assign done = state == DONE;
 
     assign compute_start = state == COMPUTE_START;
     assign clear_acc = (state == COMPUTE_START) && tile_k == 1'b0;
+
+    assign store_result = (tile_k == 1);
 
     // 定义事件
 

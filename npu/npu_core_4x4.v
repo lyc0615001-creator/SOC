@@ -26,6 +26,7 @@ module npu_core_4x4 (
 
     input  wire                    start,
     input  wire                    clear,
+    input  wire                    store,
     output wire                    busy,
     output wire                    done,
 
@@ -82,6 +83,7 @@ module npu_core_4x4 (
         // .clear(clear),
 
         .start(start),
+        .store(store),
         .busy(busy),
         .done(done),
 

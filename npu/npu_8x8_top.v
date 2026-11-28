@@ -53,6 +53,7 @@ module npu_8x8_top(
     wire compute_done;
 
     wire store_start;
+    wire store_result;
     wire store_done;
 
     wire       tile_m;
@@ -78,6 +79,7 @@ module npu_8x8_top(
 
         // C tile store
         .store_start(store_start),
+        .store_result(store_result),
         .store_done(store_done),
 
         // 当前tile坐标
@@ -185,6 +187,7 @@ module npu_8x8_top(
 
         .start(compute_start),
         .clear(clear_acc),
+        .store(store_result),
         .busy(),
         .done(compute_done),
 
