@@ -38,12 +38,14 @@ module npu_slave(
 );
     // A write
     wire         a_wr_en;
-    wire  [5:0]  a_wr_addr;
-    wire  [7:0]  a_wr_data;
+    wire [3:0]   a_wr_group_addr;
+    wire [31:0]  a_wr_data;
+    wire [3:0]   a_wr_be;
     // B write
     wire         b_wr_en;
-    wire  [5:0]  b_wr_addr;
-    wire  [7:0]  b_wr_data;
+    wire [3:0]   b_wr_group_addr;
+    wire [31:0]  b_wr_data;
+    wire [3:0]   b_wr_be;
 
     // C read
     wire [5:0]  c_rd_addr;
@@ -76,13 +78,15 @@ module npu_slave(
 
         // A write
         .a_wr_en(a_wr_en),
-        .a_wr_addr(a_wr_addr),
+        .a_wr_group_addr(a_wr_group_addr),
         .a_wr_data(a_wr_data),
+        .a_wr_be(a_wr_be),
 
         // B write
         .b_wr_en(b_wr_en),
-        .b_wr_addr(b_wr_addr),
+        .b_wr_group_addr(b_wr_group_addr),
         .b_wr_data(b_wr_data),
+        .b_wr_be(b_wr_be),
 
         // C read
         .c_rd_addr(c_rd_addr),
@@ -99,13 +103,15 @@ module npu_slave(
 
         // Global A write
         .a_wr_en(a_wr_en),
-        .a_wr_addr(a_wr_addr),
+        .a_wr_group_addr(a_wr_group_addr),
         .a_wr_data(a_wr_data),
+        .a_wr_be(a_wr_be),
 
         // Global B write
         .b_wr_en(b_wr_en),
-        .b_wr_addr(b_wr_addr),
+        .b_wr_group_addr(b_wr_group_addr),
         .b_wr_data(b_wr_data),
+        .b_wr_be(b_wr_be),
 
         // Global C read
         .c_rd_addr(c_rd_addr),

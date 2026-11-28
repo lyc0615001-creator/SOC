@@ -143,6 +143,15 @@ module dma_engine(
 
     // =====================
     // 11-24 最小配置保护
+    wire config_valid;
+
+    dma_cfg_checker u_dma_cfg_checker (
+        .src_addr     (src_addr),
+        .dst_addr     (dst_addr),
+        .length       (length),
+        .config_valid (config_valid)
+    );
+
     wire start_req;
 
     assign start_req = s_write && (s_addr == CTRL) && s_wdata[0];
@@ -158,53 +167,6 @@ module dma_engine(
             s_addr == DST_ADDR ||
             s_addr == LENGTH) &&
             dma_busy);
-
-    
-    // 长度合法
-    wire legal_length;
-    assign legal_length = (length != 0) && (length[1:0] == 2'b00);
-
-    wire addr_ok; // 0x8000_0000 ~ 0x83FF_FFFF
-
-    assign addr_ok = (src_addr[1:0] == 2'b00) && (dst_addr[1:0] == 2'b00);
-
-    wire [32:0] src_last;
-    wire [32:0] dst_last;
-
-    assign src_last = {1'b0, src_addr} + {1'b0, length} - 33'd1;
-
-    assign dst_last = {1'b0, dst_addr} + {1'b0, length} - 33'd1;
-
-    wire src_range_ok;
-    wire dst_range_ok;
-
-    // ram 0x0001_0000 ~ 0x0001_FFFF
-    // npu 0x4000_0000 ~ 0x4000_0FFF  A(wr) 0x100~0x1FC B(wr) 0x200~0x2FC  C(read) 0x300~0x3FC
-    // ddr 0x8000_0000 ~ 0x83FF_FFFF
-    assign src_range_ok = ((src_addr[31:16] == 16'h0001) && (src_last[31:16] == 16'h0001))
-                    || ((src_addr[31:8] == 24'h400003) && (src_last[31:8] == 24'h400003))
-                    || ((src_addr[31:26] == 6'b100000) && (src_last[31:26] == 6'b100000));
-    
-    assign dst_range_ok = ((dst_addr[31:16] == 16'h0001) && (dst_last[31:16] == 16'h0001))
-                    || ((dst_addr[31:8] == 24'h400001 || dst_addr[31:8] == 24'h400002) && (dst_last[31:8] == 24'h400001 || dst_last[31:8] == 24'h400002))
-                    || ((dst_addr[31:26] == 6'b100000) && (dst_last[31:26] == 6'b100000));
-
-    // 地址合法
-    wire legal_addr;
-    assign legal_addr = addr_ok && src_range_ok && dst_range_ok;
-
-    // 禁止重叠 越界
-    wire no_overlap;
-    assign no_overlap = ((src_last < {1'b0, dst_addr}) || (dst_last < {1'b0, src_addr}));
-
-    wire no_overflow;
-
-    assign no_overflow = !src_last[32] && !dst_last[32];
-
-    wire config_valid;
-
-    assign config_valid = legal_length && legal_addr && no_overlap && no_overflow;
-
 
     // 配置 slave侧
     always @(posedge clk or negedge rst_n) begin

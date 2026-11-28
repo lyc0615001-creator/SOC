@@ -30,13 +30,15 @@ module npu_8x8_top(
 
     // Global A write
     input  wire                    a_wr_en,
-    input  wire [5:0]              a_wr_addr,
-    input  wire signed [7:0]       a_wr_data,
+    input  wire [3:0]              a_wr_group_addr,
+    input  wire [31:0]             a_wr_data,
+    input  wire [3:0]              a_wr_be,
 
     // Global B write
     input  wire                    b_wr_en,
-    input  wire [5:0]              b_wr_addr,
-    input  wire signed [7:0]       b_wr_data,
+    input  wire [3:0]              b_wr_group_addr,
+    input  wire [31:0]             b_wr_data,
+    input  wire [3:0]              b_wr_be,
 
     // Global C read
     input  wire [5:0]              c_rd_addr,
@@ -135,26 +137,32 @@ module npu_8x8_top(
     );
 
     // GLOBAL ABC 
-    global_mem_a u_global_mem_a(
+    global_mem_ab u_global_mem_a(
         .clk(clk),
+        .rst_n(rst_n),
 
         .wr_en(a_wr_en),
-        .wr_addr(a_wr_addr),
+        .wr_group_addr(a_wr_group_addr),
         .wr_data(a_wr_data),
+        .wr_be(a_wr_be),
 
         .rd_addr(gmem_a_rd_addr),
         .rd_data(gmem_a_rd_data)
     );
-    global_mem_b u_global_mem_b(
+
+    global_mem_ab u_global_mem_b(
         .clk(clk),
+        .rst_n(rst_n),
 
         .wr_en(b_wr_en),
-        .wr_addr(b_wr_addr),
+        .wr_group_addr(b_wr_group_addr),
         .wr_data(b_wr_data),
+        .wr_be(b_wr_be),
 
         .rd_addr(gmem_b_rd_addr),
         .rd_data(gmem_b_rd_data)
     );
+
     global_mem_c u_global_mem_c(
         .clk(clk),
 
